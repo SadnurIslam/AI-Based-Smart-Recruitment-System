@@ -1,36 +1,148 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DevSpark AI Smart Recruitment System
 
-## Getting Started
+Full-stack university project built with Next.js App Router, Prisma, NextAuth, and Tailwind CSS.
 
-First, run the development server:
+The system helps DevSpark hire faster by:
+
+- Publishing recruitment circulars for multiple roles
+- Allowing applicants to register and maintain profile data
+- Supporting CV apply with upload/paste or AI resume builder
+- Calculating AI matching score for each application
+- Letting recruiter/admin select top-k candidates
+- Sending interview invitations using Gmail SMTP
+
+## Tech Stack
+
+- Frontend: Next.js 16, React 19, Tailwind CSS v4
+- Backend: Next.js Server Actions + API Routes
+- Database: Prisma + SQLite (local demo)
+- Auth: NextAuth (credentials + Google OAuth)
+- AI matching: custom semantic + keyword scoring engine
+- Email: Nodemailer (Gmail app password)
+
+## Main Features Implemented
+
+1. Public Pages
+- Home, About Company, Careers, Contact, Jobs list, Job details
+
+2. Authentication
+- Manual account creation and login (email/password)
+- Gmail login via Google OAuth (when credentials are configured)
+
+3. Applicant Flow
+- Applicant dashboard with profile completion and application tracking
+- Profile update page
+- AI resume builder from profile data
+- Apply with:
+	- AI-generated resume draft
+	- Uploaded text CV file (.txt/.md)
+	- Pasted CV text
+
+4. Recruiter/Admin Flow
+- Create and publish circulars
+- View applications with AI score
+- Select top-k candidates
+- Send interview invitation emails
+
+5. Admin Analytics
+- User, job, application, invite metrics
+- Top AI-scored applicants view
+
+## AI Scoring Logic (Project Scope)
+
+Current scoring combines:
+
+- Semantic cosine similarity between CV and requirement text
+- Requirement keyword coverage ratio
+- Resume structure bonus
+
+Final score is normalized to a 0-100 range and stored per application.
+
+## Project Structure (Important)
+
+- app/actions/recruitment.ts: all main recruitment server actions
+- app/dashboard/*: role-based dashboards
+- app/jobs/*: circular listing + apply flow
+- lib/ai-scoring.ts: AI score engine
+- lib/resume-builder.ts: profile-to-resume generator
+- lib/mailer.ts: Gmail invitation sender
+- prisma/schema.prisma: full DB schema
+- prisma/seed.ts: demo users/jobs/applications seed
+
+## Quick Start
+
+1. Install dependencies
+
+```bash
+npm install
+```
+
+2. Setup environment
+
+```bash
+copy .env.example .env
+```
+
+Update `.env` values as needed.
+
+3. Create DB + run migrations + seed
+
+```bash
+npm run db:migrate -- --name init
+```
+
+4. Start development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Demo Accounts (Seeded)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Admin: `admin@devspark.com` / `Admin@123`
+- Recruiter: `recruiter@devspark.com` / `Recruit@123`
+- Applicant: `applicant@example.com` / `Applicant@123`
 
-## Learn More
+## Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+Required for local:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `DATABASE_URL=file:./dev.db`
+- `NEXTAUTH_URL=http://localhost:3000`
+- `NEXTAUTH_SECRET=your-random-secret`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Optional for Gmail OAuth login:
 
-## Deploy on Vercel
+- `GOOGLE_CLIENT_ID=...`
+- `GOOGLE_CLIENT_SECRET=...`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Optional for interview email delivery:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `GMAIL_USER=your-gmail@gmail.com`
+- `GMAIL_APP_PASSWORD=your-gmail-app-password`
+
+If Gmail SMTP is not configured, invite sending is simulated and still logged in DB.
+
+## Scripts
+
+- `npm run dev`: run development server
+- `npm run build`: production build check
+- `npm run lint`: eslint check
+- `npm run db:migrate`: run prisma migrations
+- `npm run db:seed`: seed demo data
+- `npm run db:studio`: open prisma studio
+
+## Deploy to Vercel (Free)
+
+Recommended steps:
+
+1. Push this project to GitHub
+2. Import project in Vercel
+3. Use managed Postgres for production (Neon/Supabase free tier)
+4. Update Prisma datasource in `prisma/schema.prisma` for Postgres
+5. Set Vercel environment variables (`NEXTAUTH_*`, `GOOGLE_*`, `GMAIL_*`, `DATABASE_URL`)
+6. Run migration in production database
+
+Note: SQLite is suitable for local demo; Postgres is recommended for hosted deployment.
