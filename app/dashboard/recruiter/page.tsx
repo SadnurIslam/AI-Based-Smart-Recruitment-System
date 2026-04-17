@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { Role } from "@prisma/client";
 
-import { createJobPostingAction, sendTopKInvitesAction } from "@/app/actions/recruitment";
+import {
+  createJobPostingAction,
+  scheduleTopKInterviewsWithMcpAction,
+  sendTopKInvitesAction,
+} from "@/app/actions/recruitment";
 import { formatDate } from "@/lib/date";
 import { requireRole } from "@/lib/guards";
 import { prisma } from "@/lib/prisma";
@@ -13,11 +17,27 @@ type RecruiterPageProps = {
     job?: string;
     invites?: string;
     delivered?: string;
+    scheduled_count?: string;
+    scheduled_emails?: string;
+    scheduled_failed?: string;
+    scheduled_mode?: string;
+    scheduled_note?: string;
+    scheduled_error?: string;
   };
 };
 
 export default async function RecruiterDashboardPage({ searchParams }: RecruiterPageProps) {
   const user = await requireRole([Role.RECRUITER, Role.ADMIN]);
+  const mcpConfigured = Boolean(process.env.MCP_SERVER_URL);
+
+  const now = new Date();
+  const defaultStartDate = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const defaultEndDate = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const defaultTimezone = process.env.MCP_DEFAULT_TIMEZONE || "Asia/Dhaka";
 
   const whereClause = user.role === Role.ADMIN ? {} : { postedById: user.id };
 
@@ -86,6 +106,23 @@ export default async function RecruiterDashboardPage({ searchParams }: Recruiter
             delivered.
           </p>
         ) : null}
+        {searchParams?.scheduled_count ? (
+          <p className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+            MCP interview copilot scheduled {searchParams.scheduled_count} interview(s), emailed {searchParams.scheduled_emails || 0}, failed {searchParams.scheduled_failed || 0}.
+            {searchParams.scheduled_mode
+              ? ` Mode: ${searchParams.scheduled_mode.toUpperCase()}.`
+              : ""}
+            {searchParams.scheduled_note ? ` Note: ${searchParams.scheduled_note}` : ""}
+          </p>
+        ) : null}
+        {searchParams?.scheduled_error ? (
+          <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            MCP scheduling failed: {searchParams.scheduled_error.replaceAll("_", " ")}.
+          </p>
+        ) : null}
+        <p className="mt-3 text-xs text-slate-500">
+          MCP status: {mcpConfigured ? "Configured" : "Not configured (feature falls back where possible)"}
+        </p>
       </article>
 
       <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
@@ -174,31 +211,89 @@ export default async function RecruiterDashboardPage({ searchParams }: Recruiter
               </div>
 
               {job.applications.length ? (
-                <form action={sendTopKInvitesAction} className="mt-4 grid gap-3 md:grid-cols-3">
-                  <input type="hidden" name="jobId" value={job.id} />
-                  <input
-                    type="hidden"
-                    name="redirectPath"
-                    value={user.role === Role.ADMIN ? "/dashboard/admin" : "/dashboard/recruiter"}
-                  />
-                  <input
-                    name="topK"
-                    type="number"
-                    min={1}
-                    max={20}
-                    defaultValue={3}
-                    className="input-field"
-                    placeholder="Top K"
-                  />
-                  <input
-                    name="customMessage"
-                    className="input-field md:col-span-2"
-                    placeholder="Custom interview message (optional)"
-                  />
-                  <button type="submit" className="btn-main md:col-span-3 md:w-fit">
-                    Select top-k and send invite
-                  </button>
-                </form>
+                <div className="mt-4 space-y-4">
+                  <form action={sendTopKInvitesAction} className="grid gap-3 md:grid-cols-3">
+                    <input type="hidden" name="jobId" value={job.id} />
+                    <input
+                      type="hidden"
+                      name="redirectPath"
+                      value={user.role === Role.ADMIN ? "/dashboard/admin" : "/dashboard/recruiter"}
+                    />
+                    <input
+                      name="topK"
+                      type="number"
+                      min={1}
+                      max={20}
+                      defaultValue={3}
+                      className="input-field"
+                      placeholder="Top K"
+                    />
+                    <input
+                      name="customMessage"
+                      className="input-field md:col-span-2"
+                      placeholder="Custom interview message (optional)"
+                    />
+                    <button type="submit" className="btn-main md:col-span-3 md:w-fit">
+                      Select top-k and send invite
+                    </button>
+                  </form>
+
+                  <form
+                    action={scheduleTopKInterviewsWithMcpAction}
+                    className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 grid gap-3 md:grid-cols-3"
+                  >
+                    <input type="hidden" name="jobId" value={job.id} />
+                    <input
+                      type="hidden"
+                      name="redirectPath"
+                      value={user.role === Role.ADMIN ? "/dashboard/admin" : "/dashboard/recruiter"}
+                    />
+                    <input
+                      name="topK"
+                      type="number"
+                      min={1}
+                      max={20}
+                      defaultValue={3}
+                      className="input-field"
+                      placeholder="Top K"
+                    />
+                    <input
+                      name="durationMinutes"
+                      type="number"
+                      min={15}
+                      max={180}
+                      defaultValue={45}
+                      className="input-field"
+                      placeholder="Duration (minutes)"
+                    />
+                    <input
+                      name="timezone"
+                      defaultValue={defaultTimezone}
+                      className="input-field"
+                      placeholder="Timezone"
+                    />
+                    <input
+                      type="date"
+                      name="startDate"
+                      defaultValue={defaultStartDate}
+                      className="input-field"
+                    />
+                    <input
+                      type="date"
+                      name="endDate"
+                      defaultValue={defaultEndDate}
+                      className="input-field"
+                    />
+                    <input
+                      name="customMessage"
+                      className="input-field md:col-span-1"
+                      placeholder="Custom note to candidate"
+                    />
+                    <button type="submit" className="btn-main md:col-span-3 md:w-fit">
+                      AI Interview Scheduling Copilot (MCP Calendar + Gmail)
+                    </button>
+                  </form>
+                </div>
               ) : null}
             </div>
           ))}

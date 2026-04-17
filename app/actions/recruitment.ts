@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireAuth, requireRole } from "@/lib/guards";
+import { scheduleInterviewsWithCopilot } from "@/lib/interview-scheduling-copilot";
 import { sendInterviewInvite } from "@/lib/mailer";
 import { prisma } from "@/lib/prisma";
 import { buildResumeFromProfile } from "@/lib/resume-builder";
@@ -20,6 +21,17 @@ const jobSchema = z.object({
   requirements: z.string().min(30),
   responsibilities: z.string().min(20),
   minExperience: z.number().int().min(0).max(20).optional(),
+});
+
+const scheduleSchema = z.object({
+  jobId: z.string().min(1),
+  topK: z.number().int().min(1).max(30),
+  durationMinutes: z.number().int().min(15).max(180),
+  startDate: z.string().min(8),
+  endDate: z.string().min(8),
+  timezone: z.string().min(2).max(80),
+  customMessage: z.string().max(1000).optional(),
+  redirectPath: z.string().min(1).optional(),
 });
 
 function asString(value: FormDataEntryValue | null) {
@@ -301,4 +313,156 @@ export async function sendTopKInvitesAction(formData: FormData) {
   revalidatePath("/dashboard/recruiter");
   revalidatePath("/dashboard/admin");
   redirect(`${redirectPath}?invites=${selected.length}&delivered=${deliveredCount}`);
+}
+
+export async function scheduleTopKInterviewsWithMcpAction(formData: FormData) {
+  const user = await requireRole([Role.RECRUITER, Role.ADMIN]);
+
+  const redirectPath = asString(formData.get("redirectPath")) ||
+    (user.role === Role.ADMIN ? "/dashboard/admin" : "/dashboard/recruiter");
+
+  const parsed = scheduleSchema.safeParse({
+    jobId: asString(formData.get("jobId")),
+    topK: Number(asString(formData.get("topK")) || 3),
+    durationMinutes: Number(asString(formData.get("durationMinutes")) || 45),
+    startDate: asString(formData.get("startDate")),
+    endDate: asString(formData.get("endDate")),
+    timezone: asString(formData.get("timezone")) || "Asia/Dhaka",
+    customMessage: asString(formData.get("customMessage")) || undefined,
+    redirectPath,
+  });
+
+  if (!parsed.success) {
+    redirect(`${redirectPath}?scheduled_error=invalid_input`);
+  }
+
+  const job = await prisma.jobPosting.findUnique({
+    where: { id: parsed.data.jobId },
+    include: {
+      applications: {
+        where: {
+          status: {
+            in: [
+              ApplicationStatus.PENDING,
+              ApplicationStatus.SHORTLISTED,
+              ApplicationStatus.INVITED,
+            ],
+          },
+        },
+        include: {
+          applicant: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: {
+          aiScore: "desc",
+        },
+      },
+    },
+  });
+
+  if (!job) {
+    redirect(`${redirectPath}?scheduled_error=job_not_found`);
+  }
+
+  const candidates: {
+    applicationId: string;
+    name: string;
+    email: string;
+    aiScore: number;
+  }[] = [];
+
+  for (const application of job.applications) {
+    if (!application.applicant.email) {
+      continue;
+    }
+
+    candidates.push({
+      applicationId: application.id,
+      name: application.applicant.name || "Candidate",
+      email: application.applicant.email,
+      aiScore: application.aiScore,
+    });
+
+    if (candidates.length >= parsed.data.topK) {
+      break;
+    }
+  }
+
+  if (!candidates.length) {
+    redirect(`${redirectPath}?scheduled_error=no_candidates`);
+  }
+
+  const scheduleResult = await scheduleInterviewsWithCopilot({
+    companyName: "DevSpark",
+    jobTitle: job.title,
+    jobId: job.id,
+    recruiterName: user.name || "Recruitment Team",
+    startDate: parsed.data.startDate,
+    endDate: parsed.data.endDate,
+    timezone: parsed.data.timezone,
+    durationMinutes: parsed.data.durationMinutes,
+    customMessage: parsed.data.customMessage,
+    candidates,
+  });
+
+  for (const outcome of scheduleResult.outcomes) {
+    const snapshot = [
+      `Mode: ${scheduleResult.mode.toUpperCase()}`,
+      outcome.emailNote,
+      scheduleResult.notes.length
+        ? `Notes: ${scheduleResult.notes.join(" | ").slice(0, 1400)}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    await prisma.interviewInvite.create({
+      data: {
+        applicationId: outcome.applicationId,
+        sentById: user.id,
+        message: parsed.data.customMessage,
+        emailSnapshot: snapshot || "Interview scheduling completed.",
+        scheduledStart: outcome.scheduledStart,
+        scheduledEnd: outcome.scheduledEnd,
+        timezone: outcome.timezone,
+        meetingUrl: outcome.meetingUrl,
+        mcpEventId: outcome.mcpEventId,
+        mcpTrace: outcome.mcpTrace || null,
+        emailDeliveryStatus: outcome.emailDelivered ? "DELIVERED" : "FAILED",
+      },
+    });
+
+    await prisma.application.update({
+      where: { id: outcome.applicationId },
+      data: {
+        status: ApplicationStatus.INTERVIEW_SCHEDULED,
+      },
+    });
+  }
+
+  const scheduledCount = scheduleResult.outcomes.length;
+  const emailDeliveredCount = scheduleResult.outcomes.filter((item) => item.emailDelivered).length;
+  const failedCount = scheduleResult.outcomes.filter((item) => !item.emailDelivered).length;
+  const notePreview = scheduleResult.notes[0]?.slice(0, 180);
+
+  revalidatePath("/dashboard/recruiter");
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/applicant");
+
+  const query = new URLSearchParams({
+    scheduled_count: String(scheduledCount),
+    scheduled_emails: String(emailDeliveredCount),
+    scheduled_failed: String(failedCount),
+    scheduled_mode: scheduleResult.mode,
+  });
+
+  if (notePreview) {
+    query.set("scheduled_note", notePreview);
+  }
+
+  redirect(`${redirectPath}?${query.toString()}`);
 }

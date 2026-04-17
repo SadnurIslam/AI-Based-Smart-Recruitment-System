@@ -7,10 +7,21 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboardPage() {
+type AdminDashboardPageProps = {
+  searchParams?: {
+    scheduled_count?: string;
+    scheduled_emails?: string;
+    scheduled_failed?: string;
+    scheduled_mode?: string;
+    scheduled_note?: string;
+    scheduled_error?: string;
+  };
+};
+
+export default async function AdminDashboardPage({ searchParams }: AdminDashboardPageProps) {
   await requireRole([Role.ADMIN]);
 
-  const [users, jobs, applications, invites, topApplicants] = await Promise.all([
+  const [users, jobs, applications, invites, scheduledInterviews, topApplicants] = await Promise.all([
     prisma.user.findMany({
       select: {
         id: true,
@@ -39,6 +50,13 @@ export default async function AdminDashboardPage() {
     }),
     prisma.application.count(),
     prisma.interviewInvite.count(),
+    prisma.interviewInvite.count({
+      where: {
+        scheduledStart: {
+          not: null,
+        },
+      },
+    }),
     prisma.application.findMany({
       include: {
         applicant: {
@@ -69,7 +87,22 @@ export default async function AdminDashboardPage() {
           Monitor company-wide hiring progress and top candidate pipeline.
         </p>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-4">
+        {searchParams?.scheduled_count ? (
+          <p className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+            MCP interview copilot scheduled {searchParams.scheduled_count} interview(s), emailed {searchParams.scheduled_emails || 0}, failed {searchParams.scheduled_failed || 0}.
+            {searchParams.scheduled_mode
+              ? ` Mode: ${searchParams.scheduled_mode.toUpperCase()}.`
+              : ""}
+            {searchParams.scheduled_note ? ` Note: ${searchParams.scheduled_note}` : ""}
+          </p>
+        ) : null}
+        {searchParams?.scheduled_error ? (
+          <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            MCP scheduling failed: {searchParams.scheduled_error.replaceAll("_", " ")}.
+          </p>
+        ) : null}
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-5">
           <div className="rounded-2xl border border-amber-200 bg-white/80 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">Tracked users</p>
             <p className="mt-2 text-3xl font-bold text-slate-900">{users.length}</p>
@@ -85,6 +118,10 @@ export default async function AdminDashboardPage() {
           <div className="rounded-2xl border border-amber-200 bg-white/80 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">Invites sent</p>
             <p className="mt-2 text-3xl font-bold text-slate-900">{invites}</p>
+          </div>
+          <div className="rounded-2xl border border-amber-200 bg-white/80 p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Interviews scheduled</p>
+            <p className="mt-2 text-3xl font-bold text-slate-900">{scheduledInterviews}</p>
           </div>
         </div>
 

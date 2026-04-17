@@ -71,22 +71,48 @@ export const authOptions: NextAuthOptions = {
   providers,
   callbacks: {
     async signIn({ user }) {
-      if (!user.id) {
-        return false;
-      }
+      // Always resolve a persisted DB user before writing a related profile.
+      // For OAuth providers, user.id may be provider-specific and not DB user id.
+      const normalizedEmail = user.email?.toLowerCase();
+      const persistedUser = normalizedEmail
+        ? await prisma.user.findUnique({
+            where: { email: normalizedEmail },
+            select: { id: true },
+          })
+        : user.id
+          ? await prisma.user.findUnique({
+              where: { id: user.id },
+              select: { id: true },
+            })
+          : null;
 
-      await prisma.userProfile.upsert({
-        where: { userId: user.id },
-        update: {},
-        create: { userId: user.id },
-      });
+      if (persistedUser?.id) {
+        await prisma.userProfile.upsert({
+          where: { userId: persistedUser.id },
+          update: {},
+          create: { userId: persistedUser.id },
+        });
+      }
 
       return true;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as { role?: Role }).role ?? Role.APPLICANT;
+        const normalizedEmail = user.email?.toLowerCase();
+        const persistedUser = normalizedEmail
+          ? await prisma.user.findUnique({
+              where: { email: normalizedEmail },
+              select: { id: true, role: true },
+            })
+          : user.id
+            ? await prisma.user.findUnique({
+                where: { id: user.id },
+                select: { id: true, role: true },
+              })
+            : null;
+
+        token.id = persistedUser?.id ?? token.id ?? token.sub;
+        token.role = persistedUser?.role ?? (user as { role?: Role }).role ?? Role.APPLICANT;
       }
 
       if (token.id && !token.role) {

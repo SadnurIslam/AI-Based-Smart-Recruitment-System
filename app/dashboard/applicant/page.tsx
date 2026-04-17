@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { formatDate } from "@/lib/date";
+import { formatDate, formatDateTime } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/guards";
 
@@ -21,6 +21,17 @@ export default async function ApplicantDashboardPage() {
             department: true,
             location: true,
           },
+        },
+        invites: {
+          where: {
+            scheduledStart: {
+              not: null,
+            },
+          },
+          orderBy: {
+            scheduledStart: "desc",
+          },
+          take: 1,
         },
       },
       orderBy: { createdAt: "desc" },
@@ -98,19 +109,31 @@ export default async function ApplicantDashboardPage() {
                 <th className="px-2 py-2">Department</th>
                 <th className="px-2 py-2">AI score</th>
                 <th className="px-2 py-2">Status</th>
+                <th className="px-2 py-2">Interview slot</th>
                 <th className="px-2 py-2">Applied on</th>
               </tr>
             </thead>
             <tbody>
-              {applications.map((application) => (
-                <tr key={application.id} className="border-b border-amber-100/70">
-                  <td className="px-2 py-2 font-medium text-slate-900">{application.job.title}</td>
-                  <td className="px-2 py-2 text-slate-700">{application.job.department}</td>
-                  <td className="px-2 py-2 text-slate-700">{application.aiScore.toFixed(2)}</td>
-                  <td className="px-2 py-2 text-slate-700">{application.status}</td>
-                  <td className="px-2 py-2 text-slate-700">{formatDate(application.createdAt)}</td>
-                </tr>
-              ))}
+              {applications.map((application) => {
+                const latestInvite = application.invites[0];
+
+                return (
+                  <tr key={application.id} className="border-b border-amber-100/70">
+                    <td className="px-2 py-2 font-medium text-slate-900">{application.job.title}</td>
+                    <td className="px-2 py-2 text-slate-700">{application.job.department}</td>
+                    <td className="px-2 py-2 text-slate-700">{application.aiScore.toFixed(2)}</td>
+                    <td className="px-2 py-2 text-slate-700">{application.status}</td>
+                    <td className="px-2 py-2 text-slate-700">
+                      {latestInvite?.scheduledStart
+                        ? `${formatDateTime(latestInvite.scheduledStart, latestInvite.timezone || undefined)}${
+                            latestInvite.meetingUrl ? " (link shared)" : ""
+                          }`
+                        : "Not scheduled"}
+                    </td>
+                    <td className="px-2 py-2 text-slate-700">{formatDate(application.createdAt)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {!applications.length ? (

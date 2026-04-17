@@ -23,6 +23,7 @@ enum ApplicationStatus {
   PENDING
   SHORTLISTED
   INVITED
+  INTERVIEW_SCHEDULED
   REJECTED
 }
 
@@ -111,6 +112,13 @@ model InterviewInvite {
   sentAt       DateTime @default(now())
   message      String?
   emailSnapshot String
+  scheduledStart DateTime?
+  scheduledEnd DateTime?
+  timezone      String?
+  meetingUrl    String?
+  mcpEventId    String?
+  mcpTrace      String?
+  emailDeliveryStatus String?
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   sentBy      User        @relation("InvitesSent", fields: [sentById], references: [id], onDelete: Cascade)
