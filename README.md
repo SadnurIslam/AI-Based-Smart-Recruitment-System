@@ -16,7 +16,7 @@ The system helps DevSpark hire faster by:
 
 - Frontend: Next.js 16, React 19, Tailwind CSS v4
 - Backend: Next.js Server Actions + API Routes
-- Database: Prisma + SQLite (local demo)
+- Database: Prisma + SQLite locally, PostgreSQL (Supabase) for production
 - Auth: NextAuth (credentials + Google OAuth)
 - AI matching: custom semantic + keyword scoring engine
 - Email: Nodemailer (Gmail app password)
@@ -97,6 +97,8 @@ Update `.env` values as needed.
 npm run db:migrate -- --name init
 ```
 
+For Supabase production, set `DATABASE_PROVIDER=postgresql` and use `DATABASE_URL` plus `DIRECT_URL` from the Supabase database connection settings.
+
 4. Start development server
 
 ```bash
@@ -113,9 +115,11 @@ Open `http://localhost:3000`
 
 ## Environment Variables
 
-Required for local:
+Required for local development and production deployment:
 
-- `DATABASE_URL=file:./dev.db`
+- `DATABASE_PROVIDER=sqlite` for local or `DATABASE_PROVIDER=postgresql` for Supabase
+- `DATABASE_URL=postgresql://...`
+- `DIRECT_URL=postgresql://...`
 - `NEXTAUTH_URL=http://localhost:3000`
 - `NEXTAUTH_SECRET=your-random-secret`
 
@@ -145,6 +149,43 @@ Optional for MCP interview scheduling copilot:
 When MCP is configured, recruiter/admin dashboard can schedule top-k interviews automatically.
 If MCP tools fail, the flow falls back to local scheduling logic and SMTP invitation fallback.
 
+## What You Need To Fill Manually
+
+Use this as the deployment checklist when you set up Google login, Supabase, Gmail, and MCP.
+
+### Database and Deployment
+
+- `DATABASE_PROVIDER`: set to `sqlite` for local development, or `postgresql` for Supabase production.
+- `DATABASE_URL`: copy the pooled database connection string from Supabase.
+- `DIRECT_URL`: copy the direct database connection string from Supabase.
+- `NEXTAUTH_URL`: set to your deployed app URL on Vercel, for example `https://your-app.vercel.app`.
+- `NEXTAUTH_SECRET`: generate a long random secret yourself.
+
+### Google Login
+
+- `GOOGLE_CLIENT_ID`: get this from Google Cloud Console after creating an OAuth 2.0 client.
+- `GOOGLE_CLIENT_SECRET`: get this from the same Google OAuth client.
+- In Google Cloud Console, add authorized redirect URIs for NextAuth, usually `https://your-domain.com/api/auth/callback/google` and `http://localhost:3000/api/auth/callback/google` for local testing.
+
+### Gmail Email Sending
+
+- `GMAIL_USER`: your Gmail address that sends interview emails.
+- `GMAIL_APP_PASSWORD`: the Gmail app password generated from your Google account, not your normal Gmail password.
+- `CONTACT_RECIPIENT_EMAIL`: optional; where contact form messages should go. If blank, it falls back to `GMAIL_USER`.
+
+### MCP Interview Scheduling
+
+- `MCP_SERVER_URL`: the URL of your MCP server.
+- `MCP_TRANSPORT`: set to `streamable-http` or `sse` depending on your server.
+- `MCP_AUTH_TOKEN`: bearer token if your MCP server requires authorization.
+- `MCP_API_KEY`: API key header if your MCP server expects one.
+- `MCP_CALENDAR_FIND_SLOTS_TOOL`: tool name on your MCP server for finding calendar slots.
+- `MCP_CALENDAR_CREATE_EVENT_TOOL`: tool name on your MCP server for creating calendar events.
+- `MCP_GMAIL_SEND_EMAIL_TOOL`: tool name on your MCP server for sending emails.
+- `MCP_DEFAULT_TIMEZONE`: your preferred timezone for interview scheduling.
+
+If you are not using Google login or MCP yet, you can leave those values blank and the app will still run with manual login and fallback flows.
+
 ## Scripts
 
 - `npm run dev`: run development server
@@ -160,12 +201,14 @@ Recommended steps:
 
 1. Push this project to GitHub
 2. Import project in Vercel
-3. Use managed Postgres for production (Neon/Supabase free tier)
-4. Update Prisma datasource in `prisma/schema.prisma` for Postgres
-5. Set Vercel environment variables (`NEXTAUTH_*`, `GOOGLE_*`, `GMAIL_*`, `DATABASE_URL`)
-6. Run migration in production database
+3. Create a Supabase PostgreSQL project
+4. Set `DATABASE_PROVIDER=postgresql` in Vercel
+5. Copy the Supabase pooled connection string into `DATABASE_URL`
+6. Copy the direct connection string into `DIRECT_URL`
+7. Set Vercel environment variables (`NEXTAUTH_*`, `GOOGLE_*`, `GMAIL_*`, `CONTACT_RECIPIENT_EMAIL`, `DATABASE_PROVIDER`, `DATABASE_URL`, `DIRECT_URL`)
+8. Run `npm run db:deploy:pg` against the Supabase database before or during deployment
 
-Note: SQLite is suitable for local demo; Postgres is recommended for hosted deployment.
+Note: local development stays on SQLite by default. Production uses the Postgres schema when `DATABASE_PROVIDER=postgresql` is set.
 
 ## MCP Feature Demo Steps
 

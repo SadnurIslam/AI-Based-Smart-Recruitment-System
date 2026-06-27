@@ -1,4 +1,12 @@
-export default function ContactPage() {
+import { sendContactMessageAction } from "@/app/actions/contact";
+
+type ContactPageProps = {
+  searchParams?: {
+    status?: string;
+  };
+};
+
+export default function ContactPage({ searchParams }: ContactPageProps) {
   return (
     <section className="section-shell">
       <div className="grid gap-6 md:grid-cols-2">
@@ -13,15 +21,30 @@ export default function ContactPage() {
             <p>Phone: +880-1X-XXXXXXX</p>
             <p>Office: Banani, Dhaka</p>
           </div>
+          {searchParams?.status === "sent" ? (
+            <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              Your message has been sent to the DevSpark team.
+            </p>
+          ) : null}
+          {searchParams?.status === "simulated" ? (
+            <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              Email delivery is not configured yet, but your message was accepted for the demo flow.
+            </p>
+          ) : null}
+          {searchParams?.status === "invalid" ? (
+            <p className="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              Please provide a valid name, email, and message.
+            </p>
+          ) : null}
         </article>
 
         <article className="glass-panel rounded-3xl p-8 md:p-10 fade-up">
           <h2 className="text-2xl font-bold text-slate-900">Send a message</h2>
-          <form className="mt-6 space-y-4">
-            <input className="input-field" placeholder="Your name" />
-            <input className="input-field" type="email" placeholder="Your email" />
-            <textarea className="text-area" placeholder="Write your message" />
-            <button type="button" className="btn-main w-full">
+          <form action={sendContactMessageAction} className="mt-6 space-y-4">
+            <input className="input-field" name="name" placeholder="Your name" required />
+            <input className="input-field" name="email" type="email" placeholder="Your email" required />
+            <textarea className="text-area" name="message" placeholder="Write your message" required />
+            <button type="submit" className="btn-main w-full">
               Submit
             </button>
           </form>

@@ -21,9 +21,8 @@ type AdminDashboardPageProps = {
 export default async function AdminDashboardPage({ searchParams }: AdminDashboardPageProps) {
   await requireRole([Role.ADMIN]);
 
-  const [users, jobs, applications, invites, scheduledInterviews, topApplicants] = await Promise.all([
-    prisma.user.findMany({
-      select: {
+  const users = await prisma.user.findMany({
+    select: {
         id: true,
         name: true,
         email: true,
@@ -31,50 +30,107 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
       },
       orderBy: { createdAt: "desc" },
       take: 8,
-    }),
-    prisma.jobPosting.findMany({
-      include: {
-        postedBy: {
-          select: {
-            name: true,
-          },
-        },
-        _count: {
-          select: {
-            applications: true,
-          },
+    });
+
+  const jobs = await prisma.jobPosting.findMany({
+    include: {
+      postedBy: {
+        select: {
+          name: true,
         },
       },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    }),
-    prisma.application.count(),
-    prisma.interviewInvite.count(),
-    prisma.interviewInvite.count({
-      where: {
-        scheduledStart: {
-          not: null,
+      _count: {
+        select: {
+          applications: true,
         },
       },
-    }),
-    prisma.application.findMany({
-      include: {
-        applicant: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        job: {
-          select: {
-            title: true,
-          },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 8,
+  });
+
+  const applications = await prisma.application.count();
+  const invites = await prisma.interviewInvite.count();
+  const scheduledInterviews = await prisma.interviewInvite.count({
+    where: {
+      scheduledStart: {
+        not: null,
+      },
+    },
+  });
+
+  const topApplicants = await prisma.application.findMany({
+    include: {
+      applicant: {
+        select: {
+          name: true,
+          email: true,
         },
       },
-      orderBy: { aiScore: "desc" },
-      take: 6,
-    }),
-  ]);
+      job: {
+        select: {
+          title: true,
+        },
+      },
+    },
+    orderBy: { aiScore: "desc" },
+    take: 6,
+  });
+
+  // const [users, jobs, applications, invites, scheduledInterviews, topApplicants] = await Promise.all([
+  //   prisma.user.findMany({
+  //     select: {
+  //       id: true,
+  //       name: true,
+  //       email: true,
+  //       role: true,
+  //     },
+  //     orderBy: { createdAt: "desc" },
+  //     take: 8,
+  //   }),
+  //   prisma.jobPosting.findMany({
+  //     include: {
+  //       postedBy: {
+  //         select: {
+  //           name: true,
+  //         },
+  //       },
+  //       _count: {
+  //         select: {
+  //           applications: true,
+  //         },
+  //       },
+  //     },
+  //     orderBy: { createdAt: "desc" },
+  //     take: 8,
+  //   }),
+  //   prisma.application.count(),
+  //   prisma.interviewInvite.count(),
+  //   prisma.interviewInvite.count({
+  //     where: {
+  //       scheduledStart: {
+  //         not: null,
+  //       },
+  //     },
+  //   }),
+  //   prisma.application.findMany({
+  //     include: {
+  //       applicant: {
+  //         select: {
+  //           name: true,
+  //           email: true,
+  //         },
+  //       },
+  //       job: {
+  //         select: {
+  //           title: true,
+  //         },
+  //       },
+  //     },
+  //     orderBy: { aiScore: "desc" },
+  //     take: 6,
+  //   }),
+  // ]);
 
   const applicantCount = users.filter((user) => user.role === Role.APPLICANT).length;
   const recruiterCount = users.filter((user) => user.role !== Role.APPLICANT).length;
