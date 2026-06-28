@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
-
 import { getAuthSession } from "@/lib/auth";
 
 type DashboardLayoutProps = {
@@ -10,38 +9,46 @@ type DashboardLayoutProps = {
 
 export default async function DashboardLayout({ children }: DashboardLayoutProps) {
   const session = await getAuthSession();
-
   if (!session?.user) {
     redirect("/auth/signin?callbackUrl=/dashboard");
   }
 
-  const baseLinks = [
-    { href: "/dashboard", label: "Overview" },
-    { href: "/dashboard/profile", label: "Profile" },
-    { href: "/dashboard/resume-builder", label: "Resume Builder" },
-    { href: "/jobs", label: "Open Circulars" },
-  ];
+  const isAdmin = session.user.role === Role.ADMIN;
 
-  const roleLinks =
-    session.user.role === Role.APPLICANT
-      ? [{ href: "/dashboard/applicant", label: "Applicant Home" }]
-      : [{ href: "/dashboard/recruiter", label: "Recruiter Home" }];
-
-  if (session.user.role === Role.ADMIN) {
-    roleLinks.push({ href: "/dashboard/admin", label: "Admin Panel" });
-  }
-
-  const links = [...roleLinks, ...baseLinks];
+  const links = isAdmin
+    ? [
+        { href: "/dashboard/admin", label: "Overview" },
+        { href: "/dashboard/admin/jobs", label: "Job Circulars" },
+        { href: "/dashboard/admin/applications", label: "Applications" },
+        { href: "/dashboard/admin/users", label: "Users" },
+        { href: "/jobs", label: "Public Board" },
+      ]
+    : [
+        { href: "/dashboard/applicant", label: "My Dashboard" },
+        { href: "/dashboard/profile", label: "Profile" },
+        { href: "/dashboard/resume-builder", label: "Resume Builder" },
+        { href: "/jobs", label: "Open Circulars" },
+      ];
 
   return (
     <section className="section-shell">
       <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
-        <aside className="glass-panel h-fit rounded-3xl p-5 fade-up">
+        <aside className="glass-panel h-fit rounded-3xl p-5 fade-up sticky top-6">
           <p className="text-xs uppercase tracking-wide text-slate-500">Signed in as</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{session.user.name || session.user.email}</p>
-          <p className="text-xs font-semibold text-teal-700">{session.user.role}</p>
+          <p className="mt-1 truncate text-base font-semibold text-slate-900">
+            {session.user.name || session.user.email}
+          </p>
+          <span
+            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
+              isAdmin
+                ? "bg-indigo-100 text-indigo-700"
+                : "bg-teal-100 text-teal-700"
+            }`}
+          >
+            {session.user.role}
+          </span>
 
-          <nav className="mt-5 space-y-2">
+          <nav className="mt-5 space-y-1">
             {links.map((item) => (
               <Link
                 key={item.href}

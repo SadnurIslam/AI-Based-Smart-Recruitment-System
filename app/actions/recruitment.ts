@@ -1,6 +1,6 @@
 "use server";
 
-import { ApplicationStatus, Role } from "@prisma/client";
+import { ApplicationStatus, Role, JobStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -197,7 +197,7 @@ export async function applyToJobAction(formData: FormData) {
 }
 
 export async function createJobPostingAction(formData: FormData) {
-  const user = await requireRole([Role.RECRUITER, Role.ADMIN]);
+  const user = await requireRole([Role.ADMIN]);
 
   const minExperienceRaw = asString(formData.get("minExperience"));
   const input = {
@@ -213,8 +213,10 @@ export async function createJobPostingAction(formData: FormData) {
 
   const parsed = jobSchema.safeParse(input);
 
+  const redirectPath = asString(formData.get("redirectPath")) || "/dashboard/admin/jobs";
+
   if (!parsed.success) {
-    redirect("/dashboard/recruiter?job=invalid");
+    redirect(`${redirectPath}?job=invalid`);
   }
 
   await prisma.jobPosting.create({
@@ -228,14 +230,9 @@ export async function createJobPostingAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/dashboard/recruiter");
+  revalidatePath("/dashboard/admin");
   revalidatePath("/jobs");
-
-  if (user.role === Role.ADMIN) {
-    redirect("/dashboard/admin?job=created");
-  }
-
-  redirect("/dashboard/recruiter?job=created");
+  redirect(`${redirectPath}?job=created`);
 }
 
 export async function sendTopKInvitesAction(formData: FormData) {
@@ -465,4 +462,144 @@ export async function scheduleTopKInterviewsWithMcpAction(formData: FormData) {
   }
 
   redirect(`${redirectPath}?${query.toString()}`);
+}
+
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW SERVER ACTIONS TO ADD to /app/actions/recruitment.ts
+// These actions are called by the new admin dashboard pages.
+// Add them alongside your existing actions (createJobPostingAction, etc.)
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+// ─── UPDATE JOB STATUS (Open / Closed / Draft) ───────────────────────────────
+export async function updateJobStatusAction(formData: FormData) {
+  await requireRole([Role.ADMIN]);
+
+  const jobId = formData.get("jobId") as string;
+  const status = formData.get("status") as JobStatus;
+  const redirectPath = (formData.get("redirectPath") as string) || "/dashboard/admin/jobs";
+
+  if (!jobId || !status) redirect(`${redirectPath}?status=invalid`);
+
+  await prisma.jobPosting.update({
+    where: { id: jobId },
+    data: { status },
+  });
+
+  revalidatePath("/dashboard/admin");
+  redirect(`${redirectPath}?status=updated`);
+}
+
+// ─── UPDATE JOB POSTING (Edit) ────────────────────────────────────────────────
+export async function updateJobPostingAction(formData: FormData) {
+  await requireRole([Role.ADMIN]);
+
+  const jobId = formData.get("jobId") as string;
+  const redirectPath = (formData.get("redirectPath") as string) || "/dashboard/admin/jobs";
+
+  const title = formData.get("title") as string;
+  const department = formData.get("department") as string;
+  const location = formData.get("location") as string;
+  const employmentType = formData.get("employmentType") as string;
+  const description = formData.get("description") as string;
+  const requirements = formData.get("requirements") as string;
+  const responsibilities = formData.get("responsibilities") as string;
+  const minExperienceRaw = formData.get("minExperience") as string;
+  const deadlineRaw = formData.get("deadline") as string;
+  const status = formData.get("status") as JobStatus;
+
+  if (!jobId || !title || !department || !location || !employmentType || !description || !requirements || !responsibilities) {
+    redirect(`${redirectPath}?job=invalid`);
+  }
+
+  await prisma.jobPosting.update({
+    where: { id: jobId },
+    data: {
+      title: title.trim(),
+      department: department.trim(),
+      location: location.trim(),
+      employmentType: employmentType.trim(),
+      description: description.trim(),
+      requirements: requirements.trim(),
+      responsibilities: responsibilities.trim(),
+      minExperience: minExperienceRaw ? parseInt(minExperienceRaw) : null,
+      deadline: deadlineRaw ? new Date(deadlineRaw) : null,
+      ...(status && { status }),
+    },
+  });
+
+  revalidatePath("/dashboard/admin");
+  redirect(redirectPath);
+}
+
+// ─── DELETE JOB POSTING ───────────────────────────────────────────────────────
+export async function deleteJobPostingAction(formData: FormData) {
+  await requireRole([Role.ADMIN]);
+
+  const jobId = formData.get("jobId") as string;
+  const redirectPath = (formData.get("redirectPath") as string) || "/dashboard/admin/jobs";
+
+  if (!jobId) redirect(redirectPath);
+
+  // Cascades to applications + invites via Prisma schema
+  await prisma.jobPosting.delete({ where: { id: jobId } });
+
+  revalidatePath("/dashboard/admin");
+  redirect(`${redirectPath}?deleted=1`);
+}
+
+// ─── UPDATE APPLICATION STATUS ────────────────────────────────────────────────
+export async function updateApplicationStatusAction(formData: FormData) {
+  await requireRole([Role.ADMIN]);
+
+  const applicationId = formData.get("applicationId") as string;
+  const status = formData.get("status") as ApplicationStatus;
+  const redirectPath = (formData.get("redirectPath") as string) || "/dashboard/admin/applications";
+
+  if (!applicationId || !status) redirect(redirectPath);
+
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: { status },
+  });
+
+  revalidatePath("/dashboard/admin");
+  redirect(redirectPath);
+}
+
+// ─── UPDATE USER ROLE ─────────────────────────────────────────────────────────
+export async function updateUserRoleAction(formData: FormData) {
+  await requireRole([Role.ADMIN]);
+
+  const userId = formData.get("userId") as string;
+  const role = formData.get("role") as Role;
+  const redirectPath = (formData.get("redirectPath") as string) || "/dashboard/admin/users";
+
+  if (!userId || !role) redirect(redirectPath);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { role },
+  });
+
+  revalidatePath("/dashboard/admin");
+  redirect(redirectPath);
+}
+
+// ─── DELETE USER ──────────────────────────────────────────────────────────────
+export async function deleteUserAction(formData: FormData) {
+  await requireRole([Role.ADMIN]);
+
+  const userId = formData.get("userId") as string;
+  const redirectPath = (formData.get("redirectPath") as string) || "/dashboard/admin/users";
+
+  if (!userId) redirect(redirectPath);
+
+  // Cascades to profile, applications, invites via schema
+  await prisma.user.delete({ where: { id: userId } });
+
+  revalidatePath("/dashboard/admin");
+  redirect(`${redirectPath}?deleted=1`);
 }

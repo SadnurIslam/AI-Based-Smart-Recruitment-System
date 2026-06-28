@@ -13,97 +13,136 @@ type ProfilePageProps = {
 
 export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const user = await requireRole(["APPLICANT"]);
+  const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
 
-  const profile = await prisma.userProfile.findUnique({
-    where: { userId: user.id },
-  });
+  const profileFields = [
+    profile?.headline,
+    profile?.summary,
+    profile?.skills,
+    profile?.experience,
+    profile?.education,
+    profile?.phone,
+    profile?.location,
+  ];
+  const profileCompletion = Math.round(
+    (profileFields.filter((v) => Boolean(v && v.trim())).length / profileFields.length) * 100
+  );
+
+  const sections = [
+    {
+      title: "Basic Info",
+      fields: [
+        { name: "headline", label: "Headline", placeholder: "e.g. Full Stack Developer at Acme Corp", defaultValue: profile?.headline || "", type: "input", span: 2 },
+        { name: "phone", label: "Phone", placeholder: "+880 1XXX XXXXXX", defaultValue: profile?.phone || "", type: "input" },
+        { name: "location", label: "Location", placeholder: "City, Country", defaultValue: profile?.location || "", type: "input" },
+        { name: "linkedin", label: "LinkedIn URL", placeholder: "https://linkedin.com/in/...", defaultValue: profile?.linkedin || "", type: "input" },
+        { name: "github", label: "GitHub URL", placeholder: "https://github.com/...", defaultValue: profile?.github || "", type: "input" },
+      ],
+    },
+    {
+      title: "Professional Summary",
+      fields: [
+        { name: "summary", label: "Summary", placeholder: "A compelling overview of your background, strengths, and goals.", defaultValue: profile?.summary || "", type: "textarea", span: 2 },
+      ],
+    },
+    {
+      title: "Skills & Expertise",
+      fields: [
+        { name: "skills", label: "Skills", placeholder: "React, Node.js, PostgreSQL, Docker, TypeScript…", defaultValue: profile?.skills || "", type: "textarea", span: 2 },
+      ],
+    },
+    {
+      title: "Experience",
+      fields: [
+        { name: "experience", label: "Work Experience", placeholder: "Senior Engineer at Acme (2021–present) – built X, improved Y by Z%…", defaultValue: profile?.experience || "", type: "textarea", span: 2 },
+      ],
+    },
+    {
+      title: "Education",
+      fields: [
+        { name: "education", label: "Education", placeholder: "B.Sc. Computer Science, University of Dhaka (2018)", defaultValue: profile?.education || "", type: "textarea", span: 2 },
+      ],
+    },
+    {
+      title: "Projects & Certifications",
+      fields: [
+        { name: "projects", label: "Projects", placeholder: "Built a real-time chat app with 1k+ users…", defaultValue: profile?.projects || "", type: "textarea" },
+        { name: "certifications", label: "Certifications", placeholder: "AWS Solutions Architect Associate (2023)…", defaultValue: profile?.certifications || "", type: "textarea" },
+      ],
+    },
+  ];
 
   return (
-    <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
-      <h1 className="text-3xl font-bold text-slate-900">Applicant Profile</h1>
-      <p className="mt-2 text-sm text-slate-700">
-        Keep profile updated to improve AI resume quality and matching score accuracy.
-      </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">My Profile</h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Keep this updated to improve AI resume quality and job match accuracy.
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Completion</p>
+            <p className="text-3xl font-bold text-slate-900">{profileCompletion}%</p>
+          </div>
+        </div>
 
-      {searchParams?.saved || searchParams?.welcome ? (
-        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-          Profile data saved successfully.
-        </p>
-      ) : null}
+        {/* Progress bar */}
+        <div className="mt-4 h-2 w-full rounded-full bg-amber-100">
+          <div
+            className="h-2 rounded-full bg-teal-500 transition-all"
+            style={{ width: `${profileCompletion}%` }}
+          />
+        </div>
 
-      <form action={updateProfileAction} className="mt-6 grid gap-4 md:grid-cols-2">
-        <input
-          className="input-field md:col-span-2"
-          name="headline"
-          defaultValue={profile?.headline || ""}
-          placeholder="Headline (e.g., Full Stack Developer)"
-        />
-        <input
-          className="input-field"
-          name="phone"
-          defaultValue={profile?.phone || ""}
-          placeholder="Phone"
-        />
-        <input
-          className="input-field"
-          name="location"
-          defaultValue={profile?.location || ""}
-          placeholder="Location"
-        />
-        <input
-          className="input-field"
-          name="linkedin"
-          defaultValue={profile?.linkedin || ""}
-          placeholder="LinkedIn URL"
-        />
-        <input
-          className="input-field"
-          name="github"
-          defaultValue={profile?.github || ""}
-          placeholder="GitHub URL"
-        />
+        {(searchParams?.saved || searchParams?.welcome) && (
+          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            ✓ Profile saved successfully.
+          </p>
+        )}
+      </article>
 
-        <textarea
-          className="text-area md:col-span-2"
-          name="summary"
-          defaultValue={profile?.summary || ""}
-          placeholder="Professional summary"
-        />
-        <textarea
-          className="text-area md:col-span-2"
-          name="skills"
-          defaultValue={profile?.skills || ""}
-          placeholder="Skills (comma/new line separated)"
-        />
-        <textarea
-          className="text-area md:col-span-2"
-          name="experience"
-          defaultValue={profile?.experience || ""}
-          placeholder="Experience highlights"
-        />
-        <textarea
-          className="text-area md:col-span-2"
-          name="education"
-          defaultValue={profile?.education || ""}
-          placeholder="Education"
-        />
-        <textarea
-          className="text-area md:col-span-2"
-          name="projects"
-          defaultValue={profile?.projects || ""}
-          placeholder="Projects"
-        />
-        <textarea
-          className="text-area md:col-span-2"
-          name="certifications"
-          defaultValue={profile?.certifications || ""}
-          placeholder="Certifications"
-        />
+      {/* Profile form */}
+      <form action={updateProfileAction} className="space-y-6">
+        {sections.map((section) => (
+          <article key={section.title} className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
+            <h2 className="text-lg font-bold text-slate-900 mb-4">{section.title}</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {section.fields.map((field) =>
+                field.type === "textarea" ? (
+                  <textarea
+                    key={field.name}
+                    name={field.name}
+                    defaultValue={field.defaultValue}
+                    placeholder={field.placeholder}
+                    rows={4}
+                    className={`text-area ${(field as { span?: number }).span === 2 ? "md:col-span-2" : ""}`}
+                  />
+                ) : (
+                  <input
+                    key={field.name}
+                    name={field.name}
+                    defaultValue={field.defaultValue}
+                    placeholder={field.placeholder}
+                    className={`input-field ${(field as { span?: number }).span === 2 ? "md:col-span-2" : ""}`}
+                  />
+                )
+              )}
+            </div>
+          </article>
+        ))}
 
-        <button type="submit" className="btn-main md:w-fit">
-          Save profile
-        </button>
+        <div className="flex flex-wrap gap-3 pb-4">
+          <button type="submit" className="btn-main">
+            Save Profile
+          </button>
+          <a href="/dashboard/resume-builder" className="btn-soft">
+            Build Resume →
+          </a>
+        </div>
       </form>
-    </article>
+    </div>
   );
 }
