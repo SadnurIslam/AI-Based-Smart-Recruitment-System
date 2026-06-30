@@ -14,19 +14,25 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   }
 
   const isAdmin = session.user.role === Role.ADMIN;
+  const isStaff = isAdmin || session.user.role === Role.RECRUITER;
 
-  const links = isAdmin
+  const links = isStaff
     ? [
         { href: "/dashboard/admin", label: "Overview" },
         { href: "/dashboard/admin/jobs", label: "Job Circulars" },
         { href: "/dashboard/admin/applications", label: "Applications" },
-        { href: "/dashboard/admin/users", label: "Users" },
+        { href: "/dashboard/admin/interviews", label: "Interview Schedule" },
+        { href: "/dashboard/admin/copilot", label: "AI Copilot" },
+        { href: "/dashboard/admin/mcp", label: "MCP Console" },
+        // User management is admin-only.
+        ...(isAdmin ? [{ href: "/dashboard/admin/users", label: "Users" }] : []),
         { href: "/jobs", label: "Public Board" },
       ]
     : [
         { href: "/dashboard/applicant", label: "My Dashboard" },
         { href: "/dashboard/profile", label: "Profile" },
         { href: "/dashboard/resume-builder", label: "Resume Builder" },
+        { href: "/dashboard/applicant/copilot", label: "AI Career Assistant" },
         { href: "/jobs", label: "Open Circulars" },
       ];
 

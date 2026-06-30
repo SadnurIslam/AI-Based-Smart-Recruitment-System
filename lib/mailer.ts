@@ -62,3 +62,36 @@ export async function sendInterviewInvite(input: InviteMailInput): Promise<MailR
     note: "Interview invitation sent successfully.",
   };
 }
+
+// Generic plain-text send, used by the MCP `send_email` tool so the interview
+// scheduling copilot can deliver real emails when it runs in MCP mode. Falls
+// back to a simulated result when Gmail credentials are not configured.
+export async function sendRawEmail(input: {
+  to: string;
+  subject: string;
+  text: string;
+}): Promise<MailResult> {
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPassword = process.env.GMAIL_APP_PASSWORD;
+
+  if (!gmailUser || !gmailPassword) {
+    return {
+      delivered: false,
+      note: "Email simulated (no GMAIL_USER / GMAIL_APP_PASSWORD configured).",
+    };
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: gmailUser, pass: gmailPassword },
+  });
+
+  await transporter.sendMail({
+    from: `DevSpark Recruitment <${gmailUser}>`,
+    to: input.to,
+    subject: input.subject,
+    text: input.text,
+  });
+
+  return { delivered: true, note: "Email sent via Gmail." };
+}

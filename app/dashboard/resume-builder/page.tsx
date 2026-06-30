@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { generateResumeDraftAction, saveResumeDraftAction } from "@/app/actions/recruitment";
+import { generateResumeDraftAction, saveResumeDraftAction, polishResumeAction } from "@/app/actions/recruitment";
 import { buildResumeFromProfile } from "@/lib/resume-builder";
 import { requireRole } from "@/lib/guards";
 import { prisma } from "@/lib/prisma";
@@ -7,14 +7,16 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 type ResumeBuilderPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     built?: string;
     saved?: string;
-  };
+    polished?: string;
+  }>;
 };
 
 export default async function ResumeBuilderPage({ searchParams }: ResumeBuilderPageProps) {
   const user = await requireRole(["APPLICANT"]);
+  const params = await searchParams;
   const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
 
   if (!profile) {
@@ -48,14 +50,19 @@ export default async function ResumeBuilderPage({ searchParams }: ResumeBuilderP
           Generate a structured resume from your profile, then fine-tune before applying to jobs.
         </p>
 
-        {searchParams?.built && (
+        {params?.built && (
           <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
             ✓ Resume draft regenerated from your latest profile data.
           </p>
         )}
-        {searchParams?.saved && (
+        {params?.saved && (
           <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
             ✓ Resume draft saved.
+          </p>
+        )}
+        {params?.polished && (
+          <p className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+            ✨ AI polished your resume draft. Review and save it.
           </p>
         )}
 
@@ -90,6 +97,9 @@ export default async function ResumeBuilderPage({ searchParams }: ResumeBuilderP
           <div className="flex flex-wrap gap-3">
             <button type="submit" className="btn-main">
               Save Draft
+            </button>
+            <button type="submit" formAction={polishResumeAction} className="btn-soft bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200">
+              ✨ AI Polish (Auto-Enhance)
             </button>
           </div>
         </form>

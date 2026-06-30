@@ -14,15 +14,17 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 type JobsPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     job?: string;
     deleted?: string;
     status?: string;
-  };
+  }>;
 };
 
 export default async function AdminJobsPage({ searchParams }: JobsPageProps) {
-  await requireRole([Role.ADMIN]);
+  await requireRole([Role.ADMIN, Role.RECRUITER]);
+
+  const params = await searchParams;
 
   const jobs = await prisma.jobPosting.findMany({
     include: {
@@ -40,12 +42,12 @@ export default async function AdminJobsPage({ searchParams }: JobsPageProps) {
           Fill in the details below to publish a new job opening.
         </p>
 
-        {searchParams?.job === "created" && (
+        {params?.job === "created" && (
           <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
             ✓ Circular published successfully.
           </p>
         )}
-        {searchParams?.job === "invalid" && (
+        {params?.job === "invalid" && (
           <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             Please fill all required fields correctly.
           </p>
@@ -97,12 +99,12 @@ export default async function AdminJobsPage({ searchParams }: JobsPageProps) {
         <h2 className="text-2xl font-bold text-slate-900">All Circulars</h2>
         <p className="mt-1 text-sm text-slate-600">{jobs.length} total · {jobs.filter((j) => j.status === "OPEN").length} open</p>
 
-        {searchParams?.deleted && (
+        {params?.deleted && (
           <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             Circular deleted.
           </p>
         )}
-        {searchParams?.status && (
+        {params?.status && (
           <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
             Job status updated.
           </p>

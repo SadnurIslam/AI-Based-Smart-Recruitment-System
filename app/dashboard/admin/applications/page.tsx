@@ -27,7 +27,7 @@ type ApplicationsPageProps = {
 };
 
 export default async function AdminApplicationsPage({ searchParams }: ApplicationsPageProps) {
-  await requireRole([Role.ADMIN]);
+  await requireRole([Role.ADMIN, Role.RECRUITER]);
 
   const sp = await searchParams;
   const selectedJobId = sp?.jobId;
@@ -265,14 +265,14 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                         <td className="px-3 py-2">
                           <span
                             className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
-                              app.aiScore >= 0.75
+                              app.aiScore >= 75
                                 ? "bg-emerald-100 text-emerald-700"
-                                : app.aiScore >= 0.5
+                                : app.aiScore >= 50
                                 ? "bg-amber-100 text-amber-700"
                                 : "bg-rose-100 text-rose-700"
                             }`}
                           >
-                            {app.aiScore.toFixed(2)}
+                            {app.aiScore.toFixed(0)}
                           </span>
                         </td>
                         <td className="px-3 py-2">

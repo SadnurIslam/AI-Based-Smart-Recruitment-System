@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/guards";
 export default async function DashboardIndexPage() {
   const user = await requireAuth();
 
-  if (user.role === Role.ADMIN) {
+  if (user.role === Role.ADMIN || user.role === Role.RECRUITER) {
     redirect("/dashboard/admin");
   }
 

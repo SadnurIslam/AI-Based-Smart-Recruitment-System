@@ -1,12 +1,13 @@
 import { sendContactMessageAction } from "@/app/actions/contact";
 
 type ContactPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     status?: string;
-  };
+  }>;
 };
 
-export default function ContactPage({ searchParams }: ContactPageProps) {
+export default async function ContactPage({ searchParams }: ContactPageProps) {
+  const params = await searchParams;
   return (
     <section className="section-shell">
       <div className="grid gap-6 md:grid-cols-2">
@@ -21,17 +22,17 @@ export default function ContactPage({ searchParams }: ContactPageProps) {
             <p>Phone: +880-1X-XXXXXXX</p>
             <p>Office: Banani, Dhaka</p>
           </div>
-          {searchParams?.status === "sent" ? (
+          {params?.status === "sent" ? (
             <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
               Your message has been sent to the DevSpark team.
             </p>
           ) : null}
-          {searchParams?.status === "simulated" ? (
+          {params?.status === "simulated" ? (
             <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
               Email delivery is not configured yet, but your message was accepted for the demo flow.
             </p>
           ) : null}
-          {searchParams?.status === "invalid" ? (
+          {params?.status === "invalid" ? (
             <p className="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
               Please provide a valid name, email, and message.
             </p>

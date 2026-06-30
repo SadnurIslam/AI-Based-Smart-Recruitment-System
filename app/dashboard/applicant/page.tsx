@@ -121,7 +121,7 @@ export default async function ApplicantDashboardPage() {
                   <tr key={application.id} className="border-b border-amber-100/70">
                     <td className="px-2 py-2 font-medium text-slate-900">{application.job.title}</td>
                     <td className="px-2 py-2 text-slate-700">{application.job.department}</td>
-                    <td className="px-2 py-2 text-slate-700">{application.aiScore.toFixed(2)}</td>
+                    <td className="px-2 py-2 text-slate-700">{application.aiScore.toFixed(0)}</td>
                     <td className="px-2 py-2 text-slate-700">{application.status}</td>
                     <td className="px-2 py-2 text-slate-700">
                       {latestInvite?.scheduledStart

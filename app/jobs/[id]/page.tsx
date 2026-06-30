@@ -5,6 +5,7 @@ import { applyToJobAction } from "@/app/actions/recruitment";
 import { getAuthSession } from "@/lib/auth";
 import { formatDate } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import { AnalyzeFitButton } from "./AnalyzeFitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +113,10 @@ export default async function JobDetailsPage({ params, searchParams }: JobDetail
           ) : null}
 
           {session?.user?.id && session.user.role === "APPLICANT" ? (
-            <form action={applyToJobAction} className="mt-5 space-y-4">
+            <>
+              <AnalyzeFitButton jobId={job.id} />
+              
+              <form action={applyToJobAction} className="mt-5 space-y-4">
               <input type="hidden" name="jobId" value={job.id} />
               <div>
                 <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="resumeFile">
@@ -146,6 +150,7 @@ export default async function JobDetailsPage({ params, searchParams }: JobDetail
                 </button>
               </div>
             </form>
+            </>
           ) : session?.user ? (
             <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
               Only applicant accounts can apply. Switch to applicant role to submit application.

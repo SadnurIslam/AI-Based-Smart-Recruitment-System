@@ -8,19 +8,19 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 type AdminDashboardPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     scheduled_count?: string;
     scheduled_emails?: string;
     scheduled_failed?: string;
     scheduled_mode?: string;
     scheduled_note?: string;
     scheduled_error?: string;
-  };
+  }>;
 };
 
 export default async function AdminDashboardPage({ searchParams }: AdminDashboardPageProps) {
-  await requireRole([Role.ADMIN]);
-
+  await requireRole([Role.ADMIN, Role.RECRUITER]);
+  const params = await searchParams;  
   const [
     totalUsers,
     applicantCount,
@@ -31,7 +31,9 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
     scheduledCount,
     recentUsers,
     topApplicants,
-  ] = await Promise.all([
+    // Batched into a single transaction (one pooled connection) so the Supabase
+    // pgbouncer pool (connection_limit=5) is not exhausted by parallel queries.
+  ] = await prisma.$transaction([
     prisma.user.count(),
     prisma.user.count({ where: { role: Role.APPLICANT } }),
     prisma.jobPosting.count(),
@@ -76,17 +78,17 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
         </div>
 
         {/* MCP feedback banners */}
-        {searchParams?.scheduled_count && (
+        {params?.scheduled_count && (
           <p className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
-            MCP copilot scheduled {searchParams.scheduled_count} interview(s) · emailed{" "}
-            {searchParams.scheduled_emails || 0} · failed {searchParams.scheduled_failed || 0}.
-            {searchParams.scheduled_mode && ` Mode: ${searchParams.scheduled_mode.toUpperCase()}.`}
-            {searchParams.scheduled_note && ` ${searchParams.scheduled_note}`}
+            MCP copilot scheduled {params.scheduled_count} interview(s) · emailed{" "}
+            {params.scheduled_emails || 0} · failed {params.scheduled_failed || 0}.
+            {params.scheduled_mode && ` Mode: ${params.scheduled_mode.toUpperCase()}.`}
+            {params.scheduled_note && ` ${params.scheduled_note}`}
           </p>
         )}
-        {searchParams?.scheduled_error && (
+        {params?.scheduled_error && (
           <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            MCP scheduling failed: {searchParams.scheduled_error.replaceAll("_", " ")}.
+            MCP scheduling failed: {params.scheduled_error.replaceAll("_", " ")}.
           </p>
         )}
       </article>
@@ -115,7 +117,7 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
         <h2 className="text-xl font-bold text-slate-900">Quick Actions</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Link
-            href="/dashboard/admin/jobs/new"
+            href="/dashboard/admin/jobs"
             className="flex flex-col gap-1 rounded-2xl border border-amber-200 bg-white/80 p-4 text-sm transition hover:border-teal-300"
           >
             <span className="text-lg">📋</span>
@@ -179,14 +181,14 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
                   <td className="px-3 py-2">
                     <span
                       className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        app.aiScore >= 0.75
+                        app.aiScore >= 75
                           ? "bg-emerald-100 text-emerald-700"
-                          : app.aiScore >= 0.5
+                          : app.aiScore >= 50
                           ? "bg-amber-100 text-amber-700"
                           : "bg-rose-100 text-rose-700"
                       }`}
                     >
-                      {app.aiScore.toFixed(2)}
+                      {app.aiScore.toFixed(0)}
                     </span>
                   </td>
                   <td className="px-3 py-2">

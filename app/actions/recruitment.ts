@@ -10,7 +10,8 @@ import { scheduleInterviewsWithCopilot } from "@/lib/interview-scheduling-copilo
 import { sendInterviewInvite } from "@/lib/mailer";
 import { prisma } from "@/lib/prisma";
 import { buildResumeFromProfile } from "@/lib/resume-builder";
-import { scoreResumeAgainstRequirements } from "@/lib/ai-scoring";
+// Default scorer is the zero-API cosine NLP scorer (synchronous) to stay within the
+import { scoreResumeAgainstRequirements, polishResumeWithGroq } from "@/lib/ai-scoring";
 
 const jobSchema = z.object({
   title: z.string().min(3),
@@ -124,6 +125,55 @@ export async function saveResumeDraftAction(formData: FormData) {
   redirect("/dashboard/resume-builder?saved=1");
 }
 
+/**
+ * Applicant: Polish Resume Draft via LLM
+ */
+export async function polishResumeAction(formData: FormData) {
+  const user = await requireRole(["APPLICANT"]);
+  const draft = formData.get("resumeDraft")?.toString() || "";
+
+  if (!draft.trim()) {
+    redirect("/dashboard/resume-builder?error=empty");
+  }
+
+  const polished = await polishResumeWithGroq(draft);
+
+  await prisma.userProfile.update({
+    where: { userId: user.id },
+    data: { resumeDraft: polished },
+  });
+
+  redirect("/dashboard/resume-builder?polished=1");
+}
+
+/**
+ * Applicant: Analyze Fit Before Applying
+ */
+export async function analyzeFitAction(jobId: string) {
+  const user = await requireRole(["APPLICANT"]);
+  
+  const [job, profile] = await Promise.all([
+    prisma.jobPosting.findUnique({ where: { id: jobId } }),
+    prisma.userProfile.findUnique({ where: { userId: user.id } }),
+  ]);
+
+  if (!job) throw new Error("Job not found");
+  if (!profile) throw new Error("Profile not complete. Please complete your profile first.");
+
+  const generatedDraft = buildResumeFromProfile({
+    user: { name: user.name, email: user.email },
+    profile,
+  });
+  
+  const resumeText = profile.resumeDraft || generatedDraft;
+  
+  // Use the advanced Groq scorer for the fit analysis
+  const requirements = [job.description, job.requirements, job.responsibilities].filter(Boolean).join("\n\n");
+  const result = await scoreResumeAgainstRequirements(resumeText, requirements);
+
+  return result;
+}
+
 export async function applyToJobAction(formData: FormData) {
   const user = await requireRole([Role.APPLICANT]);
 
@@ -159,12 +209,10 @@ export async function applyToJobAction(formData: FormData) {
 
   if (resumeText.length < 40) {
     redirect(`/jobs/${jobId}?error=resume_too_short`);
-  }
+  };
 
-  const scoreResult = scoreResumeAgainstRequirements(
-    resumeText,
-    `${job.requirements}\n${job.description}`
-  );
+  const requirements = [job.description, job.requirements, job.responsibilities].filter(Boolean).join("\n\n");
+  const aiScore = await scoreResumeAgainstRequirements(resumeText, requirements);
 
   await prisma.application.upsert({
     where: {
@@ -176,8 +224,8 @@ export async function applyToJobAction(formData: FormData) {
     update: {
       resumeText,
       source,
-      aiScore: scoreResult.score,
-      aiReasoning: scoreResult.reasoning,
+      aiScore: aiScore.score,
+      aiReasoning: aiScore.reasoning,
       status: ApplicationStatus.PENDING,
     },
     create: {
@@ -185,19 +233,19 @@ export async function applyToJobAction(formData: FormData) {
       applicantId: user.id,
       resumeText,
       source,
-      aiScore: scoreResult.score,
-      aiReasoning: scoreResult.reasoning,
+      aiScore: aiScore.score,
+      aiReasoning: aiScore.reasoning,
       status: ApplicationStatus.PENDING,
     },
   });
 
   revalidatePath(`/jobs/${jobId}`);
   revalidatePath("/dashboard/applicant");
-  redirect(`/jobs/${jobId}?applied=1&score=${scoreResult.score}`);
+  redirect(`/jobs/${jobId}?applied=1&score=${aiScore.score}`);
 }
 
 export async function createJobPostingAction(formData: FormData) {
-  const user = await requireRole([Role.ADMIN]);
+  const user = await requireRole([Role.ADMIN, Role.RECRUITER]);
 
   const minExperienceRaw = asString(formData.get("minExperience"));
   const input = {
@@ -239,7 +287,7 @@ export async function sendTopKInvitesAction(formData: FormData) {
   const user = await requireRole([Role.RECRUITER, Role.ADMIN]);
 
   const jobId = asString(formData.get("jobId"));
-  const redirectPath = asString(formData.get("redirectPath")) || "/dashboard/recruiter";
+  const redirectPath = asString(formData.get("redirectPath")) || "/dashboard/admin";
   const customMessage = asString(formData.get("customMessage"));
   const topK = Math.max(1, Math.min(50, Number(asString(formData.get("topK")) || 3)));
 
@@ -307,7 +355,6 @@ export async function sendTopKInvitesAction(formData: FormData) {
     });
   }
 
-  revalidatePath("/dashboard/recruiter");
   revalidatePath("/dashboard/admin");
   redirect(`${redirectPath}?invites=${selected.length}&delivered=${deliveredCount}`);
 }
@@ -315,8 +362,7 @@ export async function sendTopKInvitesAction(formData: FormData) {
 export async function scheduleTopKInterviewsWithMcpAction(formData: FormData) {
   const user = await requireRole([Role.RECRUITER, Role.ADMIN]);
 
-  const redirectPath = asString(formData.get("redirectPath")) ||
-    (user.role === Role.ADMIN ? "/dashboard/admin" : "/dashboard/recruiter");
+  const redirectPath = asString(formData.get("redirectPath")) || "/dashboard/admin";
 
   const parsed = scheduleSchema.safeParse({
     jobId: asString(formData.get("jobId")),
@@ -446,7 +492,6 @@ export async function scheduleTopKInterviewsWithMcpAction(formData: FormData) {
   const failedCount = scheduleResult.outcomes.filter((item) => !item.emailDelivered).length;
   const notePreview = scheduleResult.notes[0]?.slice(0, 180);
 
-  revalidatePath("/dashboard/recruiter");
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/applicant");
 
@@ -475,7 +520,7 @@ export async function scheduleTopKInterviewsWithMcpAction(formData: FormData) {
 
 // ─── UPDATE JOB STATUS (Open / Closed / Draft) ───────────────────────────────
 export async function updateJobStatusAction(formData: FormData) {
-  await requireRole([Role.ADMIN]);
+  await requireRole([Role.ADMIN, Role.RECRUITER]);
 
   const jobId = formData.get("jobId") as string;
   const status = formData.get("status") as JobStatus;
@@ -494,7 +539,7 @@ export async function updateJobStatusAction(formData: FormData) {
 
 // ─── UPDATE JOB POSTING (Edit) ────────────────────────────────────────────────
 export async function updateJobPostingAction(formData: FormData) {
-  await requireRole([Role.ADMIN]);
+  await requireRole([Role.ADMIN, Role.RECRUITER]);
 
   const jobId = formData.get("jobId") as string;
   const redirectPath = (formData.get("redirectPath") as string) || "/dashboard/admin/jobs";
@@ -552,7 +597,7 @@ export async function deleteJobPostingAction(formData: FormData) {
 
 // ─── UPDATE APPLICATION STATUS ────────────────────────────────────────────────
 export async function updateApplicationStatusAction(formData: FormData) {
-  await requireRole([Role.ADMIN]);
+  await requireRole([Role.ADMIN, Role.RECRUITER]);
 
   const applicationId = formData.get("applicationId") as string;
   const status = formData.get("status") as ApplicationStatus;

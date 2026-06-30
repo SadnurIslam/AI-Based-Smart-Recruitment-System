@@ -8,17 +8,18 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 type UsersPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     role?: string;
     updated?: string;
     deleted?: string;
-  };
+  }>;
 };
 
 export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
   await requireRole([Role.ADMIN]);
 
-  const roleFilter = searchParams?.role as Role | undefined;
+  const params = await searchParams;
+  const roleFilter = params?.role as Role | undefined;
 
   const [users, applicantCount, adminCount] = await Promise.all([
     prisma.user.findMany({
@@ -60,12 +61,12 @@ export default async function AdminUsersPage({ searchParams }: UsersPageProps) {
           ))}
         </div>
 
-        {searchParams?.updated && (
+        {params?.updated && (
           <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
             ✓ User role updated.
           </p>
         )}
-        {searchParams?.deleted && (
+        {params?.deleted && (
           <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             User account deleted.
           </p>

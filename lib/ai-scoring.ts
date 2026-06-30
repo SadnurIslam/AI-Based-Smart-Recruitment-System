@@ -1,3 +1,5 @@
+import Groq from "groq-sdk";
+
 type ScoreDetails = {
   score: number;
   matchedKeywords: string[];
@@ -5,123 +7,129 @@ type ScoreDetails = {
   reasoning: string;
 };
 
-const STOP_WORDS = new Set([
-  "the",
-  "and",
-  "for",
-  "with",
-  "from",
-  "that",
-  "this",
-  "your",
-  "have",
-  "will",
-  "are",
-  "you",
-  "our",
-  "about",
-  "into",
-  "been",
-  "their",
-  "they",
-  "them",
-  "what",
-  "when",
-  "where",
-  "which",
-  "while",
-  "using",
-  "use",
-  "across",
-  "must",
-  "should",
-  "preferred",
-  "required",
-]);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-function tokenize(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s+#.]/g, " ")
-    .split(/\s+/)
-    .filter((token) => token.length > 2 && !STOP_WORDS.has(token));
-}
-
-function frequency(tokens: string[]) {
-  const table = new Map<string, number>();
-
-  for (const token of tokens) {
-    table.set(token, (table.get(token) ?? 0) + 1);
-  }
-
-  return table;
-}
-
-function cosineSimilarity(aText: string, bText: string) {
-  const aFreq = frequency(tokenize(aText));
-  const bFreq = frequency(tokenize(bText));
-
-  const vocabulary = new Set([...aFreq.keys(), ...bFreq.keys()]);
-  let dot = 0;
-  let aNorm = 0;
-  let bNorm = 0;
-
-  for (const key of vocabulary) {
-    const a = aFreq.get(key) ?? 0;
-    const b = bFreq.get(key) ?? 0;
-    dot += a * b;
-    aNorm += a * a;
-    bNorm += b * b;
-  }
-
-  if (!aNorm || !bNorm) {
-    return 0;
-  }
-
-  return dot / Math.sqrt(aNorm * bNorm);
-}
-
-function extractKeywords(requirements: string) {
-  const freq = frequency(tokenize(requirements));
-
-  return [...freq.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 18)
-    .map(([keyword]) => keyword);
-}
-
-export function scoreResumeAgainstRequirements(
+export async function scoreResumeAgainstRequirements(
   resumeText: string,
   requirementsText: string
-): ScoreDetails {
-  const semanticMatch = cosineSimilarity(resumeText, requirementsText);
-  const requirementKeywords = extractKeywords(requirementsText);
-  const resumeTokens = new Set(tokenize(resumeText));
+): Promise<ScoreDetails> {
+  try {
+    const prompt = `
+You are an expert HR recruiter and resume evaluator.
 
-  const matchedKeywords = requirementKeywords.filter((word) => resumeTokens.has(word));
-  const missingKeywords = requirementKeywords.filter((word) => !resumeTokens.has(word));
+Analyze the resume below against the job requirements and return a JSON score.
 
-  const keywordCoverage =
-    requirementKeywords.length > 0
-      ? matchedKeywords.length / requirementKeywords.length
-      : 0;
+JOB REQUIREMENTS:
+${requirementsText}
 
-  const structureBonus =
-    resumeText.length > 350 && /experience|project|education|skill/i.test(resumeText)
-      ? 0.12
-      : 0.02;
+RESUME:
+${resumeText}
 
-  const weightedScore = semanticMatch * 0.58 + keywordCoverage * 0.34 + structureBonus * 0.08;
-  const score = Math.min(100, Math.max(0, Math.round(weightedScore * 10000) / 100));
+Evaluate based on:
+- Skill and keyword match
+- Experience relevance  
+- Education fit
+- Overall suitability for the role
 
-  const reasoning =
-    `AI match evaluated semantic overlap and requirement keyword coverage. ` +
-    `Matched ${matchedKeywords.length} of ${requirementKeywords.length} major keywords.`;
+Return ONLY this JSON (no markdown, no extra text outside the JSON):
+{
+  "score": <number 0 to 100>,
+  "matchedKeywords": [<list of key skills/terms found in both resume and requirements>],
+  "missingKeywords": [<list of important skills/terms in requirements but missing from resume>],
+  "reasoning": "<2-3 sentence explanation of the score>"
+}
+`;
 
-  return {
-    score,
-    matchedKeywords,
-    missingKeywords,
-    reasoning,
-  };
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert HR recruiter. You always respond with valid JSON only, no markdown formatting.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 1024,
+    });
+
+    const text = completion.choices[0]?.message?.content?.trim() ?? "";
+
+    // Strip markdown code fences if model wraps with ```json
+    const clean = text
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+
+    const parsed = JSON.parse(clean) as ScoreDetails;
+
+    // Clamp score to 0-100 just in case
+    parsed.score = Math.min(100, Math.max(0, Number(parsed.score)));
+
+    return parsed;
+  } catch (error) {
+    console.error("Groq scoring failed, returning fallback score:", error);
+
+    // Fallback so the app never crashes if Groq fails
+    return {
+      score: 0,
+      matchedKeywords: [],
+      missingKeywords: [],
+      reasoning: "AI scoring temporarily unavailable. Please try reapplying.",
+    };
+  }
+}
+
+export async function polishResumeWithGroq(resumeText: string): Promise<string> {
+  try {
+    const prompt = `
+You are an expert technical recruiter and resume writer.
+Review the following resume draft. 
+Rewrite the professional summary and experience bullet points to be highly impactful.
+- Fix any grammatical errors or awkward phrasing.
+- Use strong action verbs (e.g., spearheaded, architected, delivered).
+- Use the STAR method implicitly where possible (Situation, Task, Action, Result).
+- Maintain the original markdown structure and sections.
+- Do NOT hallucinate or add fake experiences. Enhance only what is there.
+
+RESUME DRAFT:
+${resumeText}
+
+Return ONLY the polished markdown. Do not include any conversational text before or after.
+`;
+
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert resume writer. Output only the polished markdown resume.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 2048,
+    });
+
+    const text = completion.choices[0]?.message?.content?.trim() ?? "";
+    
+    // Strip markdown code fences if model wraps with ```markdown
+    const clean = text
+      .replace(/^```markdown\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+
+    return clean || resumeText;
+  } catch (error) {
+    console.error("Groq polishing failed:", error);
+    return resumeText; // Fallback to original text if error
+  }
 }

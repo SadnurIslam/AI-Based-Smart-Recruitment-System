@@ -5,14 +5,15 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 type ProfilePageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     saved?: string;
     welcome?: string;
-  };
+  }>;
 };
 
 export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const user = await requireRole(["APPLICANT"]);
+  const params = await searchParams;
   const profile = await prisma.userProfile.findUnique({ where: { userId: user.id } });
 
   const profileFields = [
@@ -97,7 +98,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           />
         </div>
 
-        {(searchParams?.saved || searchParams?.welcome) && (
+        {(params?.saved || params?.welcome) && (
           <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
             ✓ Profile saved successfully.
           </p>

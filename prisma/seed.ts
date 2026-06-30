@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient, Role } from "@prisma/client";
 
+// Use the Groq LLM scorer for seeding. Note: this uses API tokens.
 import { scoreResumeAgainstRequirements } from "../lib/ai-scoring";
 
 const prisma = new PrismaClient();
@@ -619,7 +620,7 @@ async function main() {
 
     for (const jobIdx of jobIndices) {
       const job = jobs[jobIdx];
-      const score = scoreResumeAgainstRequirements(applicantInfo.resume, job.requirements);
+      const score = await scoreResumeAgainstRequirements(applicantInfo.resume, job.requirements);
 
       await prisma.application.upsert({
         where: {

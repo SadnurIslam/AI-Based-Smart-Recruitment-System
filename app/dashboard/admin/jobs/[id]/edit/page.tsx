@@ -18,7 +18,7 @@ type EditJobPageProps = {
 };
 
 export default async function EditJobPage({ params, searchParams }: EditJobPageProps) {
-  await requireRole([Role.ADMIN]);
+  await requireRole([Role.ADMIN, Role.RECRUITER]);
 
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
