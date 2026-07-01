@@ -80,12 +80,11 @@ export function createDevSparkMcpServer(): McpServer {
     {
       title: "Score a resume",
       description:
-        "Score resume text against a job's requirements. Uses the zero-cost NLP scorer by default; set useGroq=true for an LLM score (rate limited).",
+        "Score resume text against a job's requirements using the Groq scorer.",
       inputSchema: {
         resumeText: z.string().min(40),
         jobId: z.string().optional(),
         requirementsText: z.string().optional(),
-        useGroq: z.boolean().optional(),
       },
     },
     async (args) => {
@@ -248,9 +247,10 @@ export function createDevSparkMcpServer(): McpServer {
         "Send interview invitation emails to ALL SHORTLISTED candidates for a job and update their status to INVITED. Run bulk_shortlist first to shortlist candidates.",
       inputSchema: {
         jobId: z.string(),
-        sentById: z.string().optional(),
-        customMessage: z.string().optional(),
         startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        startTime: z.string().optional(),
+        endTime: z.string().optional(),
         durationMinutes: z.number().int().optional(),
         gapMinutes: z.number().int().optional(),
         timezone: z.string().optional(),
@@ -275,23 +275,27 @@ export function createDevSparkMcpServer(): McpServer {
     "google_calendar_find_slots",
     {
       title: "Find interview slots",
-      description: "Generate available interview time slots in the requested window.",
+      description: "Generate available interview time slots inside a selected date window.",
       inputSchema: {
         startDate: z.string(),
+        endDate: z.string().optional(),
+        startTime: z.string().optional(),
+        endTime: z.string().optional(),
         count: z.number().int().min(1).max(30).optional(),
         durationMinutes: z.number().int().min(15).max(180).optional(),
       },
     },
-    async ({ startDate, count = 1, durationMinutes = 45 }) => {
-      const base = new Date(`${startDate}T10:00:00`);
+    async ({ startDate, endDate, startTime = "10:00", endTime = "17:00", count = 1, durationMinutes = 45 }) => {
+      const base = new Date(`${startDate}T${startTime}:00`);
       const start0 = Number.isNaN(base.getTime()) ? new Date(Date.now() + 86_400_000) : base;
-      const slots = Array.from({ length: count }, (_, i) => {
-        const start = new Date(start0.getTime() + i * (durationMinutes + 15) * 60_000);
-        return {
-          start: start.toISOString(),
-          end: new Date(start.getTime() + durationMinutes * 60_000).toISOString(),
-        };
-      });
+      const endBase = endDate ? new Date(`${endDate}T${endTime}:00`) : new Date(start0.getTime() + 24 * 60 * 60 * 1000);
+      const slots = [] as { start: string; end: string }[];
+      let cursor = new Date(start0);
+      while (slots.length < count && cursor <= endBase) {
+        const end = new Date(cursor.getTime() + durationMinutes * 60_000);
+        slots.push({ start: cursor.toISOString(), end: end.toISOString() });
+        cursor = new Date(cursor.getTime() + (durationMinutes + 15) * 60_000);
+      }
       return ok({ slots });
     }
   );

@@ -370,7 +370,7 @@ export async function scheduleTopKInterviewsWithMcpAction(formData: FormData) {
     durationMinutes: Number(asString(formData.get("durationMinutes")) || 45),
     startDate: asString(formData.get("startDate")),
     endDate: asString(formData.get("endDate")),
-    timezone: asString(formData.get("timezone")) || "Asia/Dhaka",
+    timezone: "Asia/Dhaka",
     customMessage: asString(formData.get("customMessage")) || undefined,
     redirectPath,
   });

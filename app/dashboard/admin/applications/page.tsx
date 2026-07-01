@@ -36,7 +36,6 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
   const now = new Date();
   const defaultStartDate = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const defaultEndDate = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const defaultTimezone = process.env.MCP_DEFAULT_TIMEZONE || "Asia/Dhaka";
 
   const jobs = await prisma.jobPosting.findMany({
     select: {
@@ -199,7 +198,6 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                   <input type="hidden" name="redirectPath" value={`/dashboard/admin/applications?jobId=${selectedJob.id}`} />
                   <input name="topK" type="number" min={1} max={20} defaultValue={3} className="input-field" placeholder="Top K" />
                   <input name="durationMinutes" type="number" min={15} max={180} defaultValue={45} className="input-field" placeholder="Duration (min)" />
-                  <input name="timezone" defaultValue={defaultTimezone} className="input-field" placeholder="Timezone" />
                   <input type="date" name="startDate" defaultValue={defaultStartDate} className="input-field" />
                   <input type="date" name="endDate" defaultValue={defaultEndDate} className="input-field" />
                   <input name="customMessage" className="input-field" placeholder="Note to candidates (optional)" />

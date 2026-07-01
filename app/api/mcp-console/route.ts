@@ -9,11 +9,20 @@ import { Client } from "@modelcontextprotocol/sdk/client";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { getAuthSession } from "@/lib/auth";
+import { formatDate } from "@/lib/date";
 import { createDevSparkMcpServer } from "@/mcp-server/server";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const ACTIVE_TOOLS = new Set([
+  "score_resume",
+  "shortlist_candidates",
+  "bulk_shortlist",
+  "reject_candidates",
+  "send_bulk_invites",
+]);
 
 function extractText(content: unknown): string {
   if (!Array.isArray(content)) return "";
@@ -55,20 +64,64 @@ export async function POST(request: Request) {
       const tools = await withMcp(async (client) => {
         const { tools } = await client.listTools();
         
-        // Fetch dynamic IDs for dropdowns
-        const jobs = await prisma.jobPosting.findMany({ select: { id: true } });
-        const apps = await prisma.application.findMany({ select: { id: true } });
-        const jobIds = jobs.map(j => j.id);
-        const appIds = apps.map(a => a.id);
+        const jobs = await prisma.jobPosting.findMany({
+          select: { id: true, title: true, createdAt: true, _count: { select: { applications: true } } },
+          orderBy: { createdAt: "desc" },
+        });
+
+        const jobOptions = jobs.map((job) => ({
+          value: job.id,
+          label: `${job.title} · ${formatDate(job.createdAt)} [${job._count.applications} applicants]`,
+          title: job.title,
+          applicants: job._count.applications,
+        }));
+
+        const appOptions = await prisma.application.findMany({
+          select: {
+            id: true,
+            job: { select: { title: true } },
+            applicant: { select: { name: true, email: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        }).then((rows) => rows.map((row) => ({
+          value: row.id,
+          label: `${row.job.title} - ${row.applicant.name || row.applicant.email || row.id}`,
+        })));
 
         return tools.map((t) => {
+          if (!ACTIVE_TOOLS.has(t.name)) {
+            return null;
+          }
+
           const schema: any = t.inputSchema ?? { type: "object", properties: {} };
           
           if (schema.properties?.jobId) {
-            schema.properties.jobId.enum = jobIds;
+            schema.properties.jobId.enum = jobOptions.map((item) => item.value);
+            schema.properties.jobId.enumLabels = jobOptions.map((item) => item.label);
+            schema.properties.jobId.placeholder = "Select a job circular";
           }
           if (schema.properties?.applicationId) {
-            schema.properties.applicationId.enum = appIds;
+            schema.properties.applicationId.enum = appOptions.map((item) => item.value);
+            schema.properties.applicationId.enumLabels = appOptions.map((item) => item.label);
+            schema.properties.applicationId.placeholder = "Select an application";
+          }
+          if (schema.properties?.topK) {
+            schema.properties.topK.placeholder = `Total applicants: ${schema.properties.jobId ? "select a job first" : "varies by job"}`;
+          }
+          if (schema.properties?.startDate) {
+            schema.properties.startDate.placeholder = "Select interview start date";
+          }
+          if (schema.properties?.endDate) {
+            schema.properties.endDate.placeholder = "Select interview end date";
+          }
+          if (schema.properties?.startTime) {
+            schema.properties.startTime.placeholder = "Select start time";
+          }
+          if (schema.properties?.endTime) {
+            schema.properties.endTime.placeholder = "Select end time";
+          }
+          if (schema.properties?.timezone) {
+            delete schema.properties.timezone;
           }
 
           return {
@@ -76,7 +129,7 @@ export async function POST(request: Request) {
             description: t.description ?? "",
             inputSchema: schema,
           };
-        });
+        }).filter(Boolean);
       });
       return Response.json({ server: "devspark-recruiter v1.0.0", tools });
     }

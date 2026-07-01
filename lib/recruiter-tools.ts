@@ -17,6 +17,7 @@ import { ApplicationStatus, Role } from "@prisma/client";
 import { prisma } from "./prisma";
 import { buildResumeFromProfile } from "./resume-builder";
 import { sendInterviewInvite } from "./mailer";
+import { buildInterviewInviteMessage } from "./mailer";
 //  - Groq = LLM scorer (default)
 import { scoreResumeAgainstRequirements as scoreWithGroq } from "./ai-scoring";
 
@@ -37,7 +38,6 @@ export async function scoreResume(input: {
   resumeText: string;
   jobId?: string;
   requirementsText?: string;
-  useGroq?: boolean;
 }): Promise<ScoreDetails> {
   let requirements = input.requirementsText?.trim() ?? "";
 
@@ -485,6 +485,9 @@ export async function sendBulkInvites(input: {
   sentById: string;
   customMessage?: string;
   startDate?: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
   durationMinutes?: number;
   gapMinutes?: number;
   timezone?: string;
@@ -513,13 +516,100 @@ export async function sendBulkInvites(input: {
     };
   }
 
-  const sent: { applicationId: string; name: string; email: string }[] = [];
+  const sent: { applicationId: string; name: string; email: string; interviewTime?: string }[] = [];
   const failed: { applicationId: string; name: string; reason: string }[] = [];
 
-  let baseTime = input.startDate ? new Date(input.startDate) : null;
   const duration = input.durationMinutes ?? 45;
   const gap = input.gapMinutes ?? 15;
   const tz = input.timezone ?? "Asia/Dhaka";
+
+  const bookedSlots = await prisma.interviewInvite.findMany({
+    where: {
+      scheduledStart: { not: null },
+      scheduledEnd: { not: null },
+    },
+    select: {
+      scheduledStart: true,
+      scheduledEnd: true,
+    },
+  });
+
+  function parseLocalDateTime(dateString: string, timeString: string) {
+    const combined = new Date(`${dateString}T${timeString}:00`);
+    return Number.isNaN(combined.getTime()) ? null : combined;
+  }
+
+  function formatSlot(slotStart: Date, slotEnd: Date) {
+    const formatOpts: Intl.DateTimeFormatOptions = {
+      dateStyle: "full",
+      timeStyle: "short",
+      timeZone: tz,
+    };
+    return `${slotStart.toLocaleString("en-US", formatOpts)} - ${slotEnd.toLocaleString("en-US", formatOpts)} (${tz})`;
+  }
+
+  function buildCandidateSlots() {
+    const slots: { start: Date; end: Date }[] = [];
+    const startDate = input.startDate ? new Date(input.startDate) : null;
+    const endDate = input.endDate ? new Date(input.endDate) : startDate;
+
+    if (!startDate || Number.isNaN(startDate.getTime())) {
+      return slots;
+    }
+
+    const dayCursor = new Date(startDate);
+    dayCursor.setHours(0, 0, 0, 0);
+
+    const finalDay = endDate && !Number.isNaN(endDate.getTime()) ? new Date(endDate) : new Date(startDate);
+    finalDay.setHours(23, 59, 59, 999);
+
+    const windowStart = input.startTime ?? "10:00";
+    const windowEnd = input.endTime ?? "17:00";
+
+    while (dayCursor <= finalDay) {
+      const dayString = dayCursor.toISOString().slice(0, 10);
+      const dayStart = parseLocalDateTime(dayString, windowStart);
+      const dayEnd = parseLocalDateTime(dayString, windowEnd);
+
+      if (dayStart && dayEnd && dayStart < dayEnd) {
+        let slotStart = new Date(dayStart);
+        while (slotStart.getTime() + duration * 60_000 <= dayEnd.getTime()) {
+          const slotEnd = new Date(slotStart.getTime() + duration * 60_000);
+          slots.push({ start: new Date(slotStart), end: slotEnd });
+          slotStart = new Date(slotStart.getTime() + (duration + gap) * 60_000);
+        }
+      }
+
+      dayCursor.setDate(dayCursor.getDate() + 1);
+    }
+
+    return slots;
+  }
+
+  function overlapsExistingBooking(slotStart: Date, slotEnd: Date) {
+    return bookedSlots.some((booking) => {
+      if (!booking.scheduledStart || !booking.scheduledEnd) return false;
+      return slotStart < booking.scheduledEnd && slotEnd > booking.scheduledStart;
+    });
+  }
+
+  const scheduledSlots = buildCandidateSlots().filter((slot) => !overlapsExistingBooking(slot.start, slot.end));
+
+  if (!scheduledSlots.length) {
+    return {
+      jobId: input.jobId,
+      jobTitle: job.title,
+      sentCount: 0,
+      failedCount: applications.length,
+      sent: [],
+      failed: applications.map((app) => ({
+        applicationId: app.id,
+        name: app.applicant.name ?? "Candidate",
+        reason: "No free interview slots available in the selected window.",
+      })),
+      note: "All generated slots overlap with existing bookings.",
+    };
+  }
 
   for (let i = 0; i < applications.length; i++) {
     const app = applications[i];
@@ -532,25 +622,37 @@ export async function sendBulkInvites(input: {
       continue;
     }
 
-    let scheduledStart: Date | null = null;
-    let scheduledEnd: Date | null = null;
-    let timeSlotMessage = "";
-
-    if (baseTime && !Number.isNaN(baseTime.getTime())) {
-      scheduledStart = new Date(baseTime.getTime() + i * (duration + gap) * 60_000);
-      scheduledEnd = new Date(scheduledStart.getTime() + duration * 60_000);
-
-      const formatOpts: Intl.DateTimeFormatOptions = { dateStyle: "full", timeStyle: "short", timeZone: tz };
-      timeSlotMessage = `\n\nInterview Schedule: ${scheduledStart.toLocaleString("en-US", formatOpts)} - ${scheduledEnd.toLocaleString("en-US", formatOpts)} (${tz})`;
+    const slot = scheduledSlots[i] ?? null;
+    const scheduledStart = slot?.start ?? null;
+    const scheduledEnd = slot?.end ?? null;
+    if (!scheduledStart || !scheduledEnd) {
+      failed.push({
+        applicationId: app.id,
+        name: app.applicant.name ?? "Candidate",
+        reason: "No free slot available after removing booked times.",
+      });
+      continue;
     }
 
-    const finalMessage = (input.customMessage ?? "") + timeSlotMessage;
+    const interviewTime = formatSlot(scheduledStart, scheduledEnd);
+    const meetingUrl = `https://meet.google.com/lookup/devspark-${input.jobId.slice(0, 8)}-${i + 1}`;
+
+    const finalMessage = buildInterviewInviteMessage({
+      candidateName: app.applicant.name ?? "Candidate",
+      jobTitle: job.title,
+      companyName: "DevSpark",
+      interviewTime,
+      meetingUrl,
+      customMessage: input.customMessage,
+    });
 
     const mailResult = await sendInterviewInvite({
       to: app.applicant.email,
       candidateName: app.applicant.name ?? "Candidate",
       jobTitle: job.title,
       companyName: "DevSpark",
+      interviewTime,
+      meetingUrl,
       message: finalMessage,
     });
 
@@ -564,6 +666,7 @@ export async function sendBulkInvites(input: {
         scheduledEnd,
         timezone: scheduledStart ? tz : null,
         emailDeliveryStatus: mailResult.delivered ? "DELIVERED" : "SIMULATED",
+        meetingUrl,
       },
     });
 
@@ -577,6 +680,7 @@ export async function sendBulkInvites(input: {
         applicationId: app.id,
         name: app.applicant.name ?? "Candidate",
         email: app.applicant.email,
+        interviewTime,
       });
     } else {
       // Email was simulated (no Gmail creds), still mark as sent in results.

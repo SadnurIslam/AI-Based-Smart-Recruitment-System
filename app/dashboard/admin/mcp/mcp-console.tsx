@@ -4,7 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 
 type JsonSchema = {
   type?: string;
-  properties?: Record<string, { type?: string; description?: string; enum?: string[] }>;
+  properties?: Record<
+    string,
+    {
+      type?: string;
+      description?: string;
+      enum?: string[];
+      enumLabels?: string[];
+      placeholder?: string;
+    }
+  >;
   required?: string[];
 };
 type Tool = { name: string; description: string; inputSchema: JsonSchema };
@@ -124,7 +133,23 @@ export function McpConsole() {
                 {Object.keys(props).length === 0 && (
                   <p className="text-xs text-slate-500">No inputs — just run it.</p>
                 )}
-                {Object.entries(props).map(([key, schema]) => (
+                {Object.entries(props).map(([key, schema]) => {
+                  const hiddenField = tool?.name === "send_bulk_invites" && (key === "sentById" || key === "customMessage");
+                  if (hiddenField) return null;
+                  if (key === "timezone") return null;
+
+                  const fieldType =
+                    key.toLowerCase().includes("date")
+                      ? "date"
+                      : key.toLowerCase().includes("time")
+                      ? "time"
+                      : schema.type === "number" || schema.type === "integer"
+                      ? "number"
+                      : schema.type === "boolean"
+                      ? "checkbox"
+                      : "text";
+
+                  return (
                   <label key={key} className="block text-sm">
                     <span className="font-medium text-slate-300">
                       {key}
@@ -140,22 +165,31 @@ export function McpConsole() {
                         className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
                       >
                         <option value="">Select {key}...</option>
-                        {schema.enum.map((opt) => (
+                        {schema.enum.map((opt, index) => (
                           <option key={opt} value={opt}>
-                            {opt}
+                            {schema.enumLabels?.[index] || opt}
                           </option>
                         ))}
                       </select>
-                    ) : (
+                    ) : fieldType === "date" || fieldType === "time" || fieldType === "number" ? (
                       <input
+                        type={fieldType}
                         value={form[key] ?? ""}
                         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                        placeholder={schema.description ?? key}
+                        placeholder={schema.placeholder ?? schema.description ?? key}
                         className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
                       />
-                    )}
+                    ) : fieldType === "checkbox" ? (
+                      <input
+                        type="checkbox"
+                        checked={form[key] === "true"}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.checked ? "true" : "false" }))}
+                        className="mt-2 h-4 w-4 rounded border-slate-700 bg-slate-950 text-lime-400 focus:ring-lime-400/20"
+                      />
+                    ) : null}
                   </label>
-                ))}
+                  );
+                })}
               </div>
 
               <button onClick={run} disabled={running} className="btn-main mt-4">
