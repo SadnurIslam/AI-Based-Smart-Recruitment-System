@@ -34,23 +34,23 @@ export default async function EditJobPage({ params, searchParams }: EditJobPageP
   return (
     <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
       <div className="flex items-center gap-3 flex-wrap">
-        <h1 className="text-2xl font-bold text-slate-900">Edit Circular</h1>
+        <h1 className="text-2xl font-bold text-white">Edit Circular</h1>
         <span
           className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
             job.status === "OPEN"
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-slate-100 text-slate-600"
+              ? "bg-emerald-500/20 text-emerald-400"
+              : "bg-slate-800 text-slate-400"
           }`}
         >
           {job.status}
         </span>
       </div>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-slate-400">
         Update the details for <strong>{job.title}</strong>.
       </p>
 
       {resolvedSearchParams?.saved && (
-        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-400">
           ✓ Changes saved successfully.
         </p>
       )}

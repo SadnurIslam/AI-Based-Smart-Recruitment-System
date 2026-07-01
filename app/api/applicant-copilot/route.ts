@@ -97,7 +97,7 @@ export async function POST(req: Request) {
     };
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-specdec",
+      model: "llama-3.3-70b-versatile",
       messages: [systemMessage, ...messages] as any[],
       tools: groqTools.length > 0 ? groqTools : undefined,
       tool_choice: groqTools.length > 0 ? "auto" : undefined,
@@ -146,7 +146,7 @@ export async function POST(req: Request) {
       }
 
       const finalCompletion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-specdec",
+        model: "llama-3.3-70b-versatile",
         messages: groqMessages as any[],
         temperature: 0.2,
         max_tokens: 1500,

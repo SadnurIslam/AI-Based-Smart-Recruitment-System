@@ -14,13 +14,13 @@ import { buildResumeFromProfile } from "@/lib/resume-builder";
 import { scoreResumeAgainstRequirements, polishResumeWithGroq } from "@/lib/ai-scoring";
 
 const jobSchema = z.object({
-  title: z.string().min(3),
-  department: z.string().min(2),
-  location: z.string().min(2),
-  employmentType: z.string().min(2),
-  description: z.string().min(30),
-  requirements: z.string().min(30),
-  responsibilities: z.string().min(20),
+  title: z.string().trim().min(1),
+  department: z.string().trim().min(1),
+  location: z.string().trim().min(1),
+  employmentType: z.string().trim().min(1),
+  description: z.string().trim().min(1),
+  requirements: z.string().trim().min(1),
+  responsibilities: z.string().trim().min(1),
   minExperience: z.number().int().min(0).max(20).optional(),
 });
 

@@ -28,7 +28,7 @@ export default async function AdminInterviewsPage() {
     <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-white">
             Interview Schedule
           </h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -38,8 +38,8 @@ export default async function AdminInterviewsPage() {
       </div>
 
       <div className="mt-8 overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="border-b border-amber-200 bg-white/40 text-slate-900">
+        <table className="w-full text-left text-sm text-slate-400">
+          <thead className="border-b border-slate-800 bg-slate-900/40 text-white">
             <tr>
               <th className="px-4 py-3 font-semibold">Candidate</th>
               <th className="px-4 py-3 font-semibold">Job Post</th>
@@ -48,7 +48,7 @@ export default async function AdminInterviewsPage() {
               <th className="px-4 py-3 font-semibold">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-amber-100 bg-white/30">
+          <tbody className="divide-y divide-amber-100 bg-slate-900/30">
             {invites.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
@@ -71,16 +71,16 @@ export default async function AdminInterviewsPage() {
                 const timeString = startStr && endStr ? `${startStr} - ${endStr} (${tz})` : "Not scheduled";
                 
                 return (
-                  <tr key={invite.id} className="transition hover:bg-white/60">
+                  <tr key={invite.id} className="transition hover:bg-slate-900/60">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">
+                      <div className="font-medium text-white">
                         {invite.application.applicant.name || "Unknown"}
                       </div>
                       <div className="text-xs text-slate-500">
                         {invite.application.applicant.email}
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-700">
+                    <td className="px-4 py-3 font-medium text-slate-300">
                       {invite.application.job.title}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -93,8 +93,8 @@ export default async function AdminInterviewsPage() {
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                           invite.emailDeliveryStatus === "DELIVERED"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
+                            ? "bg-emerald-500/20 text-emerald-400"
+                            : "bg-slate-800 text-amber-400"
                         }`}
                       >
                         {invite.emailDeliveryStatus || "UNKNOWN"}

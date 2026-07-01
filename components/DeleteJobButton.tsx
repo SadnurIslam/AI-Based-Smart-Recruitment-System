@@ -21,7 +21,7 @@ export function DeleteJobButton({ jobId, redirectPath = "/dashboard/admin/jobs" 
       <input type="hidden" name="redirectPath" value={redirectPath} />
       <button
         type="submit"
-        className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-100"
+        className="rounded-xl border border-rose-900 bg-rose-950 px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-500/20"
       >
         Delete
       </button>

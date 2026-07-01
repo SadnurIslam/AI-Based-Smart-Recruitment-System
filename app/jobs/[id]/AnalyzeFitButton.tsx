@@ -38,7 +38,7 @@ export function AnalyzeFitButton({ jobId }: AnalyzeFitButtonProps) {
         <button
           type="button"
           onClick={handleAnalyze}
-          className="btn-soft w-full flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200"
+          className="btn-soft w-full flex items-center justify-center gap-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border-indigo-500/30"
         >
           ✨ Analyze My Fit Before Applying
         </button>
@@ -47,34 +47,34 @@ export function AnalyzeFitButton({ jobId }: AnalyzeFitButtonProps) {
       {loading && (
         <div className="flex items-center justify-center space-x-2 py-3 rounded-2xl border border-slate-200 bg-slate-50">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
-          <span className="text-sm font-medium text-slate-600">Analyzing your profile with AI...</span>
+          <span className="text-sm font-medium text-slate-400">Analyzing your profile with AI...</span>
         </div>
       )}
 
       {error && (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p className="rounded-2xl border border-rose-900 bg-rose-950 px-4 py-3 text-sm text-rose-400">
           {error}
         </p>
       )}
 
       {result && (
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-5 shadow-sm fade-up">
+        <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10/50 p-5 shadow-sm fade-up">
           <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
             <h3 className="font-semibold text-indigo-900">AI Fit Analysis</h3>
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
                 result.score >= 70
-                  ? "bg-emerald-100 text-emerald-800"
+                  ? "bg-emerald-500/20 text-emerald-800"
                   : result.score >= 50
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-rose-100 text-rose-800"
+                  ? "bg-slate-800 text-amber-800"
+                  : "bg-rose-500/20 text-rose-800"
               }`}
             >
               {Math.round(result.score)}% Match
             </span>
           </div>
           
-          <div className="mt-3 text-sm text-slate-700 leading-relaxed">
+          <div className="mt-3 text-sm text-slate-300 leading-relaxed">
             <p>{result.reasoning}</p>
           </div>
 
@@ -85,7 +85,7 @@ export function AnalyzeFitButton({ jobId }: AnalyzeFitButtonProps) {
               </h4>
               <div className="flex flex-wrap gap-2">
                 {result.missingKeywords.map((kw, i) => (
-                  <span key={i} className="inline-flex rounded-md bg-rose-100 px-2 py-1 text-xs font-medium text-rose-700 border border-rose-200">
+                  <span key={i} className="inline-flex rounded-md bg-rose-500/20 px-2 py-1 text-xs font-medium text-rose-400 border border-rose-900">
                     {kw}
                   </span>
                 ))}
@@ -100,7 +100,7 @@ export function AnalyzeFitButton({ jobId }: AnalyzeFitButtonProps) {
               </h4>
               <div className="flex flex-wrap gap-2">
                 {result.matchedKeywords.map((kw, i) => (
-                  <span key={i} className="inline-flex rounded-md bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700 border border-emerald-200">
+                  <span key={i} className="inline-flex rounded-md bg-emerald-500/20 px-2 py-1 text-xs font-medium text-emerald-400 border border-emerald-200">
                     {kw}
                   </span>
                 ))}

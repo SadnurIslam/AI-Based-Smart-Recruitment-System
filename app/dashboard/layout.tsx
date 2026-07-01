@@ -32,6 +32,10 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
         { href: "/dashboard/applicant", label: "My Dashboard" },
         { href: "/dashboard/profile", label: "Profile" },
         { href: "/dashboard/resume-builder", label: "Resume Builder" },
+        // { href: "/dashboard/applicant/score-resume", label: "Score Resume" },
+        // { href: "/dashboard/applicant/job-match", label: "Job Match" },
+        { href: "/dashboard/applicant/applications", label: "My Applications" },
+        { href: "/dashboard/applicant/interviews", label: "My Interviews" },
         { href: "/dashboard/applicant/copilot", label: "AI Career Assistant" },
         { href: "/jobs", label: "Open Circulars" },
       ];
@@ -41,14 +45,14 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
       <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
         <aside className="glass-panel h-fit rounded-3xl p-5 fade-up sticky top-6">
           <p className="text-xs uppercase tracking-wide text-slate-500">Signed in as</p>
-          <p className="mt-1 truncate text-base font-semibold text-slate-900">
+          <p className="mt-1 truncate text-base font-semibold text-slate-100">
             {session.user.name || session.user.email}
           </p>
           <span
             className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
               isAdmin
-                ? "bg-indigo-100 text-indigo-700"
-                : "bg-teal-100 text-teal-700"
+                ? "bg-lime-500/20 text-lime-400"
+                : "bg-teal-500/20 text-teal-400"
             }`}
           >
             {session.user.role}
@@ -59,7 +63,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
               <Link
                 key={item.href}
                 href={item.href}
-                className="block rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-amber-100 hover:text-slate-900"
+                className="block rounded-xl px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-800/80 hover:text-[#b5ff14]"
               >
                 {item.label}
               </Link>

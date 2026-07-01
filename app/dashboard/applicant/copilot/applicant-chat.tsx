@@ -49,7 +49,7 @@ export function ApplicantChat() {
 
   return (
     <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
-      <div className="flex h-[460px] flex-col gap-3 overflow-y-auto rounded-2xl border border-indigo-200 bg-white/60 p-4">
+      <div className="flex h-[460px] flex-col gap-3 overflow-y-auto rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-4">
         {messages.length === 0 && (
           <p className="m-auto text-sm text-slate-500 text-center">
             Hi! I'm your AI Career Assistant.<br/>
@@ -62,14 +62,14 @@ export function ApplicantChat() {
             className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${
               m.role === "user"
                 ? "ml-auto bg-indigo-600 text-white"
-                : "mr-auto border border-indigo-200 bg-white text-slate-800"
+                : "mr-auto border border-indigo-500/30 bg-slate-900 text-slate-100"
             }`}
           >
             {m.content}
           </div>
         ))}
         {loading && (
-          <div className="mr-auto rounded-2xl border border-indigo-200 bg-white px-4 py-2 text-sm text-slate-500">
+          <div className="mr-auto rounded-2xl border border-indigo-500/30 bg-slate-900 px-4 py-2 text-sm text-slate-500">
             Thinking…
           </div>
         )}
@@ -82,7 +82,7 @@ export function ApplicantChat() {
         </p>
       )}
       {error && (
-        <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <p className="mt-3 rounded-xl border border-rose-900 bg-rose-950 px-3 py-2 text-sm text-rose-400">
           {error}
         </p>
       )}
@@ -92,7 +92,7 @@ export function ApplicantChat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about matching jobs..."
-          className="flex-1 rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm outline-none focus:border-indigo-400"
+          className="flex-1 rounded-xl border border-indigo-500/30 bg-slate-900 px-4 py-2 text-sm outline-none focus:border-indigo-400"
           disabled={loading}
         />
         <button type="submit" className="btn-main" disabled={loading || !input.trim()}>

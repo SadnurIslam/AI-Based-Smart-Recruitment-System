@@ -52,7 +52,7 @@ export function SignUpForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="name">
+        <label className="mb-1 block text-sm font-semibold text-slate-300" htmlFor="name">
           Full name
         </label>
         <input
@@ -66,7 +66,7 @@ export function SignUpForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="email">
+        <label className="mb-1 block text-sm font-semibold text-slate-300" htmlFor="email">
           Email
         </label>
         <input
@@ -81,7 +81,7 @@ export function SignUpForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="password">
+        <label className="mb-1 block text-sm font-semibold text-slate-300" htmlFor="password">
           Password
         </label>
         <input
@@ -97,7 +97,7 @@ export function SignUpForm() {
       </div>
 
       {error ? (
-        <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <p className="rounded-xl border border-rose-900 bg-rose-950 px-3 py-2 text-sm text-rose-400">
           {error}
         </p>
       ) : null}

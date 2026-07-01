@@ -44,7 +44,7 @@ export function SignInForm({ googleEnabled }: SignInFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="email">
+        <label className="mb-1 block text-sm font-semibold text-slate-300" htmlFor="email">
           Email
         </label>
         <input
@@ -59,7 +59,7 @@ export function SignInForm({ googleEnabled }: SignInFormProps) {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="password">
+        <label className="mb-1 block text-sm font-semibold text-slate-300" htmlFor="password">
           Password
         </label>
         <input
@@ -74,7 +74,7 @@ export function SignInForm({ googleEnabled }: SignInFormProps) {
       </div>
 
       {error || params.get("error") ? (
-        <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <p className="rounded-xl border border-rose-900 bg-rose-950 px-3 py-2 text-sm text-rose-400">
           {error || "Authentication failed. Please try again."}
         </p>
       ) : null}
@@ -92,7 +92,7 @@ export function SignInForm({ googleEnabled }: SignInFormProps) {
           Continue with Gmail
         </button>
       ) : (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+        <p className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-2 text-xs text-amber-400">
           Gmail login appears automatically after adding GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.
         </p>
       )}

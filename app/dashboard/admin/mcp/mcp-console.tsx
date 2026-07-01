@@ -86,8 +86,8 @@ export function McpConsole() {
   return (
     <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
       <div className="flex items-center gap-2 text-sm">
-        <span className={`inline-block h-2 w-2 rounded-full ${server ? "bg-emerald-500" : "bg-slate-300"}`} />
-        <span className="text-slate-600">
+        <span className={`inline-block h-2 w-2 rounded-full ${server ? "bg-lime-400" : "bg-slate-700"}`} />
+        <span className="text-slate-400">
           {server ? `Connected — ${server} · ${tools.length} tools` : "Connecting to MCP server…"}
         </span>
       </div>
@@ -101,24 +101,24 @@ export function McpConsole() {
               onClick={() => pick(t.name)}
               className={`block w-full rounded-2xl border px-4 py-3 text-left text-sm transition ${
                 selected === t.name
-                  ? "border-teal-400 bg-teal-50"
-                  : "border-amber-200 bg-white/70 hover:border-teal-300"
+                  ? "border-lime-500/50 bg-slate-800"
+                  : "border-transparent bg-transparent hover:border-slate-700 hover:bg-slate-800/50"
               }`}
             >
-              <span className="font-mono font-semibold text-slate-900">{t.name}</span>
+              <span className="font-mono font-semibold text-white">{t.name}</span>
               <span className="mt-0.5 block text-xs text-slate-500">{t.description}</span>
             </button>
           ))}
         </div>
 
         {/* Tool runner */}
-        <div className="rounded-2xl border border-amber-200 bg-white/70 p-5">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
           {!tool && <p className="text-sm text-slate-500">Select a tool on the left to run it.</p>}
 
           {tool && (
             <>
-              <h3 className="font-mono text-lg font-semibold text-slate-900">{tool.name}</h3>
-              <p className="mt-1 text-sm text-slate-600">{tool.description}</p>
+              <h3 className="font-mono text-lg font-semibold text-white">{tool.name}</h3>
+              <p className="mt-1 text-sm text-slate-400">{tool.description}</p>
 
               <div className="mt-4 space-y-3">
                 {Object.keys(props).length === 0 && (
@@ -126,7 +126,7 @@ export function McpConsole() {
                 )}
                 {Object.entries(props).map(([key, schema]) => (
                   <label key={key} className="block text-sm">
-                    <span className="font-medium text-slate-700">
+                    <span className="font-medium text-slate-300">
                       {key}
                       {required.has(key) && <span className="text-rose-500"> *</span>}
                       <span className="ml-2 text-xs font-normal text-slate-400">
@@ -137,7 +137,7 @@ export function McpConsole() {
                       <select
                         value={form[key] ?? ""}
                         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                        className="mt-1 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-teal-400"
+                        className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
                       >
                         <option value="">Select {key}...</option>
                         {schema.enum.map((opt) => (
@@ -151,7 +151,7 @@ export function McpConsole() {
                         value={form[key] ?? ""}
                         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                         placeholder={schema.description ?? key}
-                        className="mt-1 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-teal-400"
+                        className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
                       />
                     )}
                   </label>
@@ -163,7 +163,7 @@ export function McpConsole() {
               </button>
 
               {error && (
-                <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                <p className="mt-3 rounded-xl border border-rose-900 bg-rose-950 px-3 py-2 text-sm text-rose-400">
                   {error}
                 </p>
               )}

@@ -63,22 +63,22 @@ export default async function JobDetailsPage({ params, searchParams }: JobDetail
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <article className="glass-panel rounded-3xl p-7 md:p-9 fade-up">
           <p className="tag-pill">{job.department}</p>
-          <h1 className="mt-4 text-4xl font-bold text-slate-900">{job.title}</h1>
-          <p className="mt-3 text-sm text-slate-600">
+          <h1 className="mt-4 text-4xl font-bold text-white">{job.title}</h1>
+          <p className="mt-3 text-sm text-slate-400">
             {job.location} · {job.employmentType} · Posted by {job.postedBy.name || "Recruiter"}
           </p>
 
-          <div className="mt-7 space-y-6 text-sm leading-7 text-slate-700">
+          <div className="mt-7 space-y-6 text-sm leading-7 text-slate-300">
             <section>
-              <h2 className="text-xl font-semibold text-slate-900">Job description</h2>
+              <h2 className="text-xl font-semibold text-white">Job description</h2>
               <p className="mt-2">{job.description}</p>
             </section>
             <section>
-              <h2 className="text-xl font-semibold text-slate-900">Requirements</h2>
+              <h2 className="text-xl font-semibold text-white">Requirements</h2>
               <p className="mt-2 whitespace-pre-line">{job.requirements}</p>
             </section>
             <section>
-              <h2 className="text-xl font-semibold text-slate-900">Responsibilities</h2>
+              <h2 className="text-xl font-semibold text-white">Responsibilities</h2>
               <p className="mt-2 whitespace-pre-line">{job.responsibilities}</p>
             </section>
           </div>
@@ -89,25 +89,25 @@ export default async function JobDetailsPage({ params, searchParams }: JobDetail
         </article>
 
         <aside className="glass-panel rounded-3xl p-7 md:p-8 fade-up">
-          <h2 className="text-2xl font-bold text-slate-900">Apply now</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-700">
+          <h2 className="text-2xl font-bold text-white">Apply now</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
             Use your profile-generated AI resume or paste CV text to get instant matching score.
           </p>
 
           {applied ? (
-            <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-400">
               Application submitted successfully. AI score: {query.score || existingApplication?.aiScore || "N/A"}
             </p>
           ) : null}
 
           {query.error === "resume_too_short" ? (
-            <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <p className="mt-4 rounded-2xl border border-rose-900 bg-rose-950 px-4 py-3 text-sm text-rose-400">
               Resume text is too short. Add more details about skills and experience.
             </p>
           ) : null}
 
           {existingApplication ? (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-sm text-amber-400">
               You already applied. Current AI score: {existingApplication.aiScore}
             </div>
           ) : null}
@@ -119,7 +119,7 @@ export default async function JobDetailsPage({ params, searchParams }: JobDetail
               <form action={applyToJobAction} className="mt-5 space-y-4">
               <input type="hidden" name="jobId" value={job.id} />
               <div>
-                <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="resumeFile">
+                <label className="mb-1 block text-sm font-semibold text-slate-300" htmlFor="resumeFile">
                   Upload CV text file (.txt, .md)
                 </label>
                 <input
@@ -131,7 +131,7 @@ export default async function JobDetailsPage({ params, searchParams }: JobDetail
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="resumeText">
+                <label className="mb-1 block text-sm font-semibold text-slate-300" htmlFor="resumeText">
                   Paste CV text (used when file is not uploaded)
                 </label>
                 <textarea
@@ -152,12 +152,12 @@ export default async function JobDetailsPage({ params, searchParams }: JobDetail
             </form>
             </>
           ) : session?.user ? (
-            <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-300">
               Only applicant accounts can apply. Switch to applicant role to submit application.
             </p>
           ) : (
             <div className="mt-5 space-y-3">
-              <p className="text-sm text-slate-700">Please sign in to apply.</p>
+              <p className="text-sm text-slate-300">Please sign in to apply.</p>
               <Link href="/auth/signin" className="btn-main inline-block">
                 Sign in
               </Link>

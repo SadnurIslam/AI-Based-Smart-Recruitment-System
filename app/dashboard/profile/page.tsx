@@ -79,19 +79,19 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">My Profile</h1>
-            <p className="mt-1 text-sm text-slate-600">
+            <h1 className="text-3xl font-bold text-white">My Profile</h1>
+            <p className="mt-1 text-sm text-slate-400">
               Keep this updated to improve AI resume quality and job match accuracy.
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs uppercase tracking-wide text-slate-500">Completion</p>
-            <p className="text-3xl font-bold text-slate-900">{profileCompletion}%</p>
+            <p className="text-3xl font-bold text-white">{profileCompletion}%</p>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="mt-4 h-2 w-full rounded-full bg-amber-100">
+        <div className="mt-4 h-2 w-full rounded-full bg-slate-800">
           <div
             className="h-2 rounded-full bg-teal-500 transition-all"
             style={{ width: `${profileCompletion}%` }}
@@ -99,7 +99,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         </div>
 
         {(params?.saved || params?.welcome) && (
-          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-400">
             ✓ Profile saved successfully.
           </p>
         )}
@@ -109,7 +109,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       <form action={updateProfileAction} className="space-y-6">
         {sections.map((section) => (
           <article key={section.title} className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">{section.title}</h2>
+            <h2 className="text-lg font-bold text-white mb-4">{section.title}</h2>
             <div className="grid gap-4 md:grid-cols-2">
               {section.fields.map((field) =>
                 field.type === "textarea" ? (

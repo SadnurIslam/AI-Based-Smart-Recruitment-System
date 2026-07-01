@@ -69,8 +69,8 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
     <div className="space-y-6">
       {/* Header */}
       <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
-        <h1 className="text-2xl font-bold text-slate-900">Applications</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-2xl font-bold text-white">Applications</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Select a job circular to review its applicants, sorted by AI score.
           {!mcpConfigured && (
             <span className="ml-2 text-amber-600">
@@ -80,12 +80,12 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
         </p>
 
         {sp?.invites && (
-          <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
+          <p className="mt-4 rounded-xl border border-teal-200 bg-teal-500/10 px-3 py-2 text-sm text-lime-400">
             ✓ Top {sp.invites} candidate(s) selected · {sp.delivered || 0} invitation(s) delivered.
           </p>
         )}
         {sp?.scheduled_count && (
-          <p className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+          <p className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-400">
             MCP copilot scheduled {sp.scheduled_count} interview(s) · emailed{" "}
             {sp.scheduled_emails || 0} · failed {sp.scheduled_failed || 0}.
             {sp.scheduled_mode && ` Mode: ${sp.scheduled_mode.toUpperCase()}.`}
@@ -93,7 +93,7 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
           </p>
         )}
         {sp?.scheduled_error && (
-          <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <p className="mt-4 rounded-xl border border-rose-900 bg-rose-950 px-3 py-2 text-sm text-rose-400">
             MCP scheduling failed: {sp.scheduled_error.replaceAll("_", " ")}.
           </p>
         )}
@@ -101,7 +101,7 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
 
       {/* Job selector */}
       <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
-        <h2 className="text-lg font-bold text-slate-900">Select a Circular</h2>
+        <h2 className="text-lg font-bold text-white">Select a Circular</h2>
         <p className="mt-1 text-sm text-slate-500">Click a job to view its applicants.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {jobs.map((job) => (
@@ -110,18 +110,18 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
               href={`/dashboard/admin/applications?jobId=${job.id}`}
               className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
                 selectedJobId === job.id
-                  ? "border-teal-400 bg-teal-50 shadow-sm"
-                  : "border-amber-200 bg-white/80 hover:border-teal-300"
+                  ? "border-lime-500 bg-teal-500/10 shadow-sm"
+                  : "border-slate-800 bg-slate-900/50 hover:border-lime-500/50"
               }`}
             >
               <div>
-                <p className="font-semibold text-slate-900">{job.title}</p>
+                <p className="font-semibold text-white">{job.title}</p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   <span
                     className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium mr-2 ${
                       job.status === "OPEN"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-slate-100 text-slate-500"
+                        ? "bg-emerald-500/20 text-emerald-400"
+                        : "bg-slate-800 text-slate-500"
                     }`}
                   >
                     {job.status}
@@ -130,7 +130,7 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                 </p>
               </div>
               {selectedJobId === job.id && (
-                <span className="text-teal-600 text-xs font-semibold">Viewing →</span>
+                <span className="text-lime-400 text-xs font-semibold">Viewing →</span>
               )}
             </Link>
           ))}
@@ -145,10 +145,10 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
         <>
           {/* Top-K invite panel */}
           <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
-            <h2 className="text-lg font-bold text-slate-900">
+            <h2 className="text-lg font-bold text-white">
               Send Interview Invites — {selectedJob.title}
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-slate-400">
               Top-K is picked by highest AI score. Only candidates with status{" "}
               <span className="font-medium">Pending</span> or{" "}
               <span className="font-medium">Shortlisted</span> are eligible.
@@ -156,8 +156,8 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
 
             <div className="mt-5 space-y-4">
               {/* Email invite */}
-              <div className="rounded-2xl border border-teal-200 bg-teal-50/40 p-4">
-                <p className="text-sm font-semibold text-slate-700 mb-3">📧 Email Invite</p>
+              <div className="rounded-2xl border border-teal-200 bg-teal-500/10/40 p-4">
+                <p className="text-sm font-semibold text-slate-300 mb-3">📧 Email Invite</p>
                 <form action={sendTopKInvitesAction} className="grid gap-3 md:grid-cols-3">
                   <input type="hidden" name="jobId" value={selectedJob.id} />
                   <input type="hidden" name="redirectPath" value={`/dashboard/admin/applications?jobId=${selectedJob.id}`} />
@@ -182,11 +182,11 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
               </div>
 
               {/* MCP scheduling */}
-              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4">
-                <p className="text-sm font-semibold text-slate-700 mb-1">
+              <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10/40 p-4">
+                <p className="text-sm font-semibold text-slate-300 mb-1">
                   🤖 AI Interview Scheduling Copilot
                   {!mcpConfigured && (
-                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
+                    <span className="ml-2 rounded-full bg-slate-800 px-2 py-0.5 text-xs text-amber-400">
                       MCP not configured
                     </span>
                   )}
@@ -215,14 +215,14 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
           <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">{selectedJob.title}</h2>
+                <h2 className="text-xl font-bold text-white">{selectedJob.title}</h2>
                 <p className="mt-0.5 text-sm text-slate-500">
                   {applications.length} applicant(s) · sorted by AI score (highest first)
                 </p>
               </div>
               <Link
                 href="/dashboard/admin/applications"
-                className="text-xs text-slate-500 hover:text-slate-700 underline"
+                className="text-xs text-slate-500 hover:text-slate-300 underline"
               >
                 ← Back to all jobs
               </Link>
@@ -231,7 +231,7 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-amber-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <tr className="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
                     <th className="px-3 py-2">#</th>
                     <th className="px-3 py-2">Applicant</th>
                     <th className="px-3 py-2">Email</th>
@@ -248,7 +248,7 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                     return (
                       <tr
                         key={app.id}
-                        className={`border-b border-amber-100/70 hover:bg-amber-50/40 transition ${
+                        className={`border-b border-slate-800 hover:bg-slate-800/50 transition ${
                           index === 0 ? "bg-emerald-50/30" : ""
                         }`}
                       >
@@ -258,29 +258,29 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                             <span className="ml-1 text-emerald-600">★</span>
                           )}
                         </td>
-                        <td className="px-3 py-2 font-medium text-slate-900">
+                        <td className="px-3 py-2 font-medium text-white">
                           {app.applicant.name || "Unnamed"}
                         </td>
-                        <td className="px-3 py-2 text-slate-600">{app.applicant.email}</td>
+                        <td className="px-3 py-2 text-slate-400">{app.applicant.email}</td>
                         <td className="px-3 py-2">
                           <span
                             className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
                               app.aiScore >= 75
-                                ? "bg-emerald-100 text-emerald-700"
+                                ? "bg-emerald-500/20 text-emerald-400"
                                 : app.aiScore >= 50
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-rose-100 text-rose-700"
+                                ? "bg-slate-800 text-amber-400"
+                                : "bg-rose-500/20 text-rose-400"
                             }`}
                           >
                             {app.aiScore.toFixed(0)}
                           </span>
                         </td>
                         <td className="px-3 py-2">
-                          <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                          <span className="inline-block rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
                             {app.status.replace("_", " ")}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-slate-600 text-xs">
+                        <td className="px-3 py-2 text-slate-400 text-xs">
                           {latestInvite?.scheduledStart
                             ? formatDateTime(latestInvite.scheduledStart, latestInvite.timezone || undefined)
                             : latestInvite
@@ -297,7 +297,7 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                             <select
                               name="status"
                               defaultValue={app.status}
-                              className="rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:border-teal-400"
+                              className="rounded-lg border border-slate-800 bg-slate-900 px-2 py-1 text-xs text-slate-300 outline-none focus:border-lime-400"
                             >
                               <option value="PENDING">Pending</option>
                               <option value="SHORTLISTED">Shortlisted</option>
@@ -307,7 +307,7 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                             </select>
                             <button
                               type="submit"
-                              className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-700 hover:bg-slate-200 transition"
+                              className="rounded-lg bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-200 transition"
                             >
                               Set
                             </button>
@@ -332,7 +332,7 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
       {!selectedJob && (
         <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up text-center">
           <p className="text-4xl mb-3">👆</p>
-          <p className="text-slate-600 text-sm">Select a circular above to view its applicants.</p>
+          <p className="text-slate-400 text-sm">Select a circular above to view its applicants.</p>
         </article>
       )}
     </div>

@@ -22,8 +22,8 @@ export default async function ResumeBuilderPage({ searchParams }: ResumeBuilderP
   if (!profile) {
     return (
       <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
-        <h1 className="text-3xl font-bold text-slate-900">AI Resume Builder</h1>
-        <p className="mt-3 text-sm text-slate-600">
+        <h1 className="text-3xl font-bold text-white">AI Resume Builder</h1>
+        <p className="mt-3 text-sm text-slate-400">
           Complete your profile first so the system can generate your resume content.
         </p>
         <div className="mt-5">
@@ -45,23 +45,23 @@ export default async function ResumeBuilderPage({ searchParams }: ResumeBuilderP
   return (
     <div className="space-y-6">
       <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
-        <h1 className="text-3xl font-bold text-slate-900">AI Resume Builder</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-3xl font-bold text-white">AI Resume Builder</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Generate a structured resume from your profile, then fine-tune before applying to jobs.
         </p>
 
         {params?.built && (
-          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-400">
             ✓ Resume draft regenerated from your latest profile data.
           </p>
         )}
         {params?.saved && (
-          <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
+          <p className="mt-4 rounded-xl border border-teal-200 bg-teal-500/10 px-3 py-2 text-sm text-lime-400">
             ✓ Resume draft saved.
           </p>
         )}
         {params?.polished && (
-          <p className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+          <p className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-400">
             ✨ AI polished your resume draft. Review and save it.
           </p>
         )}
@@ -82,8 +82,8 @@ export default async function ResumeBuilderPage({ searchParams }: ResumeBuilderP
       </article>
 
       <article className="glass-panel rounded-3xl p-6 md:p-8 fade-up">
-        <h2 className="text-xl font-bold text-slate-900">Your Resume Draft</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="text-xl font-bold text-white">Your Resume Draft</h2>
+        <p className="mt-1 text-sm text-slate-400">
           Edit this directly and save. It will be used when you apply to jobs.
         </p>
 
@@ -92,19 +92,19 @@ export default async function ResumeBuilderPage({ searchParams }: ResumeBuilderP
             name="resumeDraft"
             defaultValue={resumeDraft}
             rows={28}
-            className="w-full rounded-2xl border border-amber-200 bg-white/90 p-4 text-sm leading-7 text-slate-700 shadow-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 font-mono"
+            className="w-full rounded-2xl border border-slate-800 bg-slate-900 p-4 text-sm leading-7 text-slate-300 shadow-sm outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 font-mono"
           />
           <div className="flex flex-wrap gap-3">
             <button type="submit" className="btn-main">
               Save Draft
             </button>
-            <button type="submit" formAction={polishResumeAction} className="btn-soft bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200">
+            <button type="submit" formAction={polishResumeAction} className="btn-soft bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border-indigo-500/30">
               ✨ AI Polish (Auto-Enhance)
             </button>
           </div>
         </form>
 
-        <p className="mt-4 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-xs leading-5 text-slate-600">
+        <p className="mt-4 rounded-xl border border-amber-100 bg-slate-900/50/60 px-4 py-3 text-xs leading-5 text-slate-400">
           💡 Tip: Include specific tools, frameworks, and measurable outcomes (e.g. "reduced latency by 40%") in your experience section to score higher in AI matching for technical roles.
         </p>
       </article>
