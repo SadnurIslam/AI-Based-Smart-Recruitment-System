@@ -2,6 +2,9 @@ import Link from "next/link";
 import { Role } from "@prisma/client";
 
 import {
+  bulkInviteAction,
+  bulkRejectAction,
+  bulkShortlistAction,
   scheduleTopKInterviewsWithMcpAction,
   sendTopKInvitesAction,
   updateApplicationStatusAction,
@@ -48,6 +51,7 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
   });
 
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) : null;
+  const inviteStatus = sp?.invite_status;
 
   // Only fetch applications when a job is selected
   const applications = selectedJobId
@@ -79,8 +83,30 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
         </p>
 
         {sp?.invites && (
-          <p className="mt-4 rounded-xl border border-teal-200 bg-teal-500/10 px-3 py-2 text-sm text-lime-400">
-            ✓ Top {sp.invites} candidate(s) selected · {sp.delivered || 0} invitation(s) delivered.
+          <p
+            className={`mt-4 rounded-xl px-3 py-2 text-sm ${
+              inviteStatus === "sent_failed"
+                ? "border border-rose-900 bg-rose-950 text-rose-400"
+                : "border border-teal-200 bg-teal-500/10 text-lime-400"
+            }`}
+          >
+            {inviteStatus === "sent_failed" ? "✗" : "✓"} Top {sp.invites} candidate(s) selected · {sp.delivered || 0} invitation(s) delivered.
+            {sp.extra_emails && ` Extra emails: ${sp.extra_emails}.`}
+          </p>
+        )}
+        {sp?.bulk_shortlist && (
+          <p className="mt-4 rounded-xl border border-lime-500/30 bg-lime-500/10 px-3 py-2 text-sm text-lime-300">
+            ✓ Bulk shortlisted {sp.bulk_shortlist} candidate(s) · skipped {sp.bulk_shortlist_skipped || 0}.
+          </p>
+        )}
+        {sp?.bulk_reject && (
+          <p className="mt-4 rounded-xl border border-rose-900 bg-rose-950 px-3 py-2 text-sm text-rose-400">
+            ✗ Bulk rejected {sp.bulk_reject} candidate(s) · emailed {sp.bulk_reject_emailed || 0}.
+          </p>
+        )}
+        {sp?.bulk_invite && (
+          <p className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-300">
+            ✓ Bulk invitation sent to {sp.bulk_invite} candidate(s) · failed {sp.bulk_invite_failed || 0}.
           </p>
         )}
         {sp?.scheduled_count && (
@@ -165,7 +191,6 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                     type="number"
                     min={1}
                     max={applications.length || 1}
-                    defaultValue={Math.min(3, applications.length || 1)}
                     className="input-field"
                     placeholder="Top K (e.g. 3)"
                   />
@@ -174,10 +199,58 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                     className="input-field md:col-span-2"
                     placeholder="Custom message to candidates (optional)"
                   />
+                  <input
+                    name="extraEmails"
+                    className="input-field md:col-span-2"
+                    placeholder="Extra invite emails, comma separated (optional)"
+                  />
                   <button type="submit" className="btn-main md:col-span-3 md:w-fit">
                     Send Invite to Top-K Candidates
                   </button>
                 </form>
+              </div>
+
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+                <p className="text-sm font-semibold text-slate-300 mb-3">⚙ Bulk Actions</p>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <form action={bulkShortlistAction} className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+                    <input type="hidden" name="jobId" value={selectedJob.id} />
+                    <input type="hidden" name="redirectPath" value={`/dashboard/admin/applications?jobId=${selectedJob.id}`} />
+                    <input name="topK" type="number" min={1} max={50} className="input-field" placeholder="Shortlist top K" />
+                    <input name="minScore" type="number" min={0} max={100} step={0.1} className="input-field" placeholder="Minimum score (optional)" />
+                    <label className="flex items-center gap-2 text-xs text-slate-400">
+                      <input name="rescore" type="checkbox" value="true" className="h-4 w-4 rounded border-slate-700 bg-slate-950 text-lime-400" />
+                      Rescore first
+                    </label>
+                    <button type="submit" className="btn-main w-full">Bulk Shortlist</button>
+                  </form>
+
+                  <form action={bulkRejectAction} className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+                    <input type="hidden" name="jobId" value={selectedJob.id} />
+                    <input type="hidden" name="redirectPath" value={`/dashboard/admin/applications?jobId=${selectedJob.id}`} />
+                    <input name="belowScore" type="number" min={0} max={100} step={0.1} className="input-field" placeholder="Reject below score" />
+                    <label className="flex items-center gap-2 text-xs text-slate-400">
+                      <input name="sendEmail" type="checkbox" value="true" className="h-4 w-4 rounded border-slate-700 bg-slate-950 text-lime-400" />
+                      Send rejection email
+                    </label>
+                    <input name="emailMessage" className="input-field" placeholder="Rejection email message (optional)" />
+                    <button type="submit" className="btn-main w-full">Bulk Reject</button>
+                  </form>
+
+                  <form action={bulkInviteAction} className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+                    <input type="hidden" name="jobId" value={selectedJob.id} />
+                    <input type="hidden" name="redirectPath" value={`/dashboard/admin/applications?jobId=${selectedJob.id}`} />
+                    <input name="topK" type="number" min={1} max={50} className="input-field" placeholder="Invite top K" />
+                    <input type="date" name="startDate" className="input-field" placeholder="Start date" />
+                    <input type="date" name="endDate" className="input-field" placeholder="End date" />
+                    <input name="startTime" type="time" className="input-field" placeholder="Start time" />
+                    <input name="endTime" type="time" className="input-field" placeholder="End time" />
+                    <input name="durationMinutes" type="number" min={15} max={180} className="input-field" placeholder="Duration (min)" />
+                    <input name="gapMinutes" type="number" min={0} max={120} className="input-field" placeholder="Gap (min)" />
+                    <input name="customMessage" className="input-field" placeholder="Invite note (optional)" />
+                    <button type="submit" className="btn-main w-full">Bulk Invitation</button>
+                  </form>
+                </div>
               </div>
 
               {/* MCP scheduling */}
@@ -196,10 +269,10 @@ export default async function AdminApplicationsPage({ searchParams }: Applicatio
                 <form action={scheduleTopKInterviewsWithMcpAction} className="grid gap-3 md:grid-cols-3">
                   <input type="hidden" name="jobId" value={selectedJob.id} />
                   <input type="hidden" name="redirectPath" value={`/dashboard/admin/applications?jobId=${selectedJob.id}`} />
-                  <input name="topK" type="number" min={1} max={20} defaultValue={3} className="input-field" placeholder="Top K" />
-                  <input name="durationMinutes" type="number" min={15} max={180} defaultValue={45} className="input-field" placeholder="Duration (min)" />
-                  <input type="date" name="startDate" defaultValue={defaultStartDate} className="input-field" />
-                  <input type="date" name="endDate" defaultValue={defaultEndDate} className="input-field" />
+                  <input name="topK" type="number" min={1} max={20} className="input-field" placeholder="Top K" />
+                  <input name="durationMinutes" type="number" min={15} max={180} className="input-field" placeholder="Duration (min)" />
+                  <input type="date" name="startDate" className="input-field" placeholder="Start date" />
+                  <input type="date" name="endDate" className="input-field" placeholder="End date" />
                   <input name="customMessage" className="input-field" placeholder="Note to candidates (optional)" />
                   <button type="submit" className="btn-main md:col-span-3 md:w-fit">
                     Schedule with MCP Copilot (Calendar + Gmail)

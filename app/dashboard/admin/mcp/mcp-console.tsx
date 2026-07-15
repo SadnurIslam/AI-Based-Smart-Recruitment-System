@@ -150,44 +150,52 @@ export function McpConsole() {
                       : "text";
 
                   return (
-                  <label key={key} className="block text-sm">
-                    <span className="font-medium text-slate-300">
-                      {key}
-                      {required.has(key) && <span className="text-rose-500"> *</span>}
-                      <span className="ml-2 text-xs font-normal text-slate-400">
-                        {schema.type ?? "string"}
+                    <label key={key} className="block text-sm">
+                      <span className="font-medium text-slate-300">
+                        {key}
+                        {required.has(key) && <span className="text-rose-500"> *</span>}
+                        <span className="ml-2 text-xs font-normal text-slate-400">
+                          {schema.type ?? "string"}
+                        </span>
                       </span>
-                    </span>
-                    {schema.enum ? (
-                      <select
-                        value={form[key] ?? ""}
-                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                        className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
-                      >
-                        <option value="">Select {key}...</option>
-                        {schema.enum.map((opt, index) => (
-                          <option key={opt} value={opt}>
-                            {schema.enumLabels?.[index] || opt}
-                          </option>
-                        ))}
-                      </select>
-                    ) : fieldType === "date" || fieldType === "time" || fieldType === "number" ? (
-                      <input
-                        type={fieldType}
-                        value={form[key] ?? ""}
-                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                        placeholder={schema.placeholder ?? schema.description ?? key}
-                        className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
-                      />
-                    ) : fieldType === "checkbox" ? (
-                      <input
-                        type="checkbox"
-                        checked={form[key] === "true"}
-                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.checked ? "true" : "false" }))}
-                        className="mt-2 h-4 w-4 rounded border-slate-700 bg-slate-950 text-lime-400 focus:ring-lime-400/20"
-                      />
-                    ) : null}
-                  </label>
+                      {schema.enum ? (
+                        <select
+                          value={form[key] ?? ""}
+                          onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                          className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
+                        >
+                          <option value="">Select {key}...</option>
+                          {schema.enum.map((opt, index) => (
+                            <option key={opt} value={opt}>
+                              {schema.enumLabels?.[index] || opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : fieldType === "date" || fieldType === "time" || fieldType === "number" ? (
+                        <input
+                          type={fieldType}
+                          value={form[key] ?? ""}
+                          onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                          placeholder={schema.placeholder ?? schema.description ?? key}
+                          className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
+                        />
+                      ) : fieldType === "checkbox" ? (
+                        <input
+                          type="checkbox"
+                          checked={form[key] === "true"}
+                          onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.checked ? "true" : "false" }))}
+                          className="mt-2 h-4 w-4 rounded border-slate-700 bg-slate-950 text-lime-400 focus:ring-lime-400/20"
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={form[key] ?? ""}
+                          onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                          placeholder={schema.placeholder ?? schema.description ?? key}
+                          className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
+                        />
+                      )}
+                    </label>
                   );
                 })}
               </div>

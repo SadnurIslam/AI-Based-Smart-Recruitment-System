@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { buildResumeFromProfile } from "@/lib/resume-builder";
 // Default scorer is the zero-API cosine NLP scorer (synchronous) to stay within the
 import { scoreResumeAgainstRequirements, polishResumeWithGroq } from "@/lib/ai-scoring";
+import { bulkShortlist, rejectCandidates, sendBulkInvites } from "@/lib/recruiter-tools";
 
 const jobSchema = z.object({
   title: z.string().trim().min(1),
@@ -37,6 +38,14 @@ const scheduleSchema = z.object({
 
 function asString(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function redirectWithQuery(redirectPath: string, query: Record<string, string>) {
+  const url = new URL(redirectPath, "http://localhost");
+  for (const [key, value] of Object.entries(query)) {
+    url.searchParams.set(key, value);
+  }
+  return `${url.pathname}${url.search}${url.hash}`;
 }
 
 export async function updateProfileAction(formData: FormData) {
@@ -290,6 +299,10 @@ export async function sendTopKInvitesAction(formData: FormData) {
   const redirectPath = asString(formData.get("redirectPath")) || "/dashboard/admin";
   const customMessage = asString(formData.get("customMessage"));
   const topK = Math.max(1, Math.min(50, Number(asString(formData.get("topK")) || 3)));
+  const extraEmails = asString(formData.get("extraEmails"))
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
 
   const job = await prisma.jobPosting.findUnique({
     where: { id: jobId },
@@ -355,8 +368,29 @@ export async function sendTopKInvitesAction(formData: FormData) {
     });
   }
 
+  for (const email of extraEmails) {
+    const mailResult = await sendInterviewInvite({
+      to: email,
+      candidateName: "Candidate",
+      jobTitle: job.title,
+      companyName: "DevSpark",
+      message: customMessage,
+    });
+
+    if (mailResult.delivered) {
+      deliveredCount += 1;
+    }
+  }
+
   revalidatePath("/dashboard/admin");
-  redirect(`${redirectPath}?invites=${selected.length}&delivered=${deliveredCount}`);
+  redirect(
+    redirectWithQuery(redirectPath, {
+      invites: String(selected.length),
+      delivered: String(deliveredCount),
+      invite_status: deliveredCount > 0 ? "sent_successfully" : "sent_failed",
+      ...(extraEmails.length ? { extra_emails: String(extraEmails.length) } : {}),
+    })
+  );
 }
 
 export async function scheduleTopKInterviewsWithMcpAction(formData: FormData) {
@@ -612,6 +646,101 @@ export async function updateApplicationStatusAction(formData: FormData) {
 
   revalidatePath("/dashboard/admin");
   redirect(redirectPath);
+}
+
+// ─── BULK SHORTLIST ─────────────────────────────────────────────────────────
+export async function bulkShortlistAction(formData: FormData) {
+  await requireRole([Role.ADMIN, Role.RECRUITER]);
+
+  const jobId = asString(formData.get("jobId"));
+  const redirectPath = asString(formData.get("redirectPath")) || "/dashboard/admin/applications";
+  const topK = Math.max(1, Math.min(50, Number(asString(formData.get("topK")) || 3)));
+  const minScoreRaw = asString(formData.get("minScore"));
+  const rescore = asString(formData.get("rescore")) === "true";
+
+  if (!jobId) redirect(redirectPath);
+
+  const result = await bulkShortlist({
+    jobId,
+    topK,
+    minScore: minScoreRaw ? Number(minScoreRaw) : undefined,
+    rescore,
+  });
+
+  revalidatePath("/dashboard/admin");
+  redirect(
+    redirectWithQuery(redirectPath, {
+      bulk_shortlist: String(result.shortlistedCount),
+      bulk_shortlist_skipped: String(result.skippedCount),
+    })
+  );
+}
+
+// ─── BULK REJECT ────────────────────────────────────────────────────────────
+export async function bulkRejectAction(formData: FormData) {
+  await requireRole([Role.ADMIN, Role.RECRUITER]);
+
+  const jobId = asString(formData.get("jobId"));
+  const redirectPath = asString(formData.get("redirectPath")) || "/dashboard/admin/applications";
+  const belowScore = Number(asString(formData.get("belowScore")) || 0);
+  const sendEmail = asString(formData.get("sendEmail")) === "true";
+  const emailMessage = asString(formData.get("emailMessage")) || undefined;
+
+  if (!jobId) redirect(redirectPath);
+
+  const result = await rejectCandidates({
+    jobId,
+    belowScore,
+    sendEmail,
+    emailMessage,
+  });
+
+  revalidatePath("/dashboard/admin");
+  redirect(
+    redirectWithQuery(redirectPath, {
+      bulk_reject: String(result.rejectedCount),
+      bulk_reject_emailed: String(result.emailedCount),
+    })
+  );
+}
+
+// ─── BULK INVITES ───────────────────────────────────────────────────────────
+export async function bulkInviteAction(formData: FormData) {
+  const user = await requireRole([Role.ADMIN, Role.RECRUITER]);
+
+  const jobId = asString(formData.get("jobId"));
+  const redirectPath = asString(formData.get("redirectPath")) || "/dashboard/admin/applications";
+  const customMessage = asString(formData.get("customMessage")) || undefined;
+  const startDate = asString(formData.get("startDate")) || undefined;
+  const endDate = asString(formData.get("endDate")) || undefined;
+  const startTime = asString(formData.get("startTime")) || undefined;
+  const endTime = asString(formData.get("endTime")) || undefined;
+  const durationMinutes = Number(asString(formData.get("durationMinutes")) || 45);
+  const gapMinutes = Number(asString(formData.get("gapMinutes")) || 15);
+  const timezone = asString(formData.get("timezone")) || "Asia/Dhaka";
+
+  if (!jobId) redirect(redirectPath);
+
+  const result = await sendBulkInvites({
+    jobId,
+    sentById: user.id,
+    customMessage,
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    durationMinutes,
+    gapMinutes,
+    timezone,
+  });
+
+  revalidatePath("/dashboard/admin");
+  redirect(
+    redirectWithQuery(redirectPath, {
+      bulk_invite: String(result.sentCount),
+      bulk_invite_failed: String(result.failedCount),
+    })
+  );
 }
 
 // ─── UPDATE USER ROLE ─────────────────────────────────────────────────────────

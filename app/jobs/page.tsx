@@ -33,18 +33,21 @@ export default async function JobsPage() {
         {jobs.map((job) => (
           <article key={job.id} className="glass-panel rounded-3xl p-6">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-              <div>
+              <div className="flex-1 min-w-0">
                 <h2 className="text-2xl font-semibold text-white">{job.title}</h2>
                 <p className="mt-1 text-sm text-slate-400">
                   {job.department} · {job.location} · {job.employmentType}
                 </p>
                 <p className="mt-3 text-sm leading-6 text-slate-300">{job.description}</p>
                 <p className="mt-3 text-xs text-slate-500">
-                  Posted by {job.postedBy.name || "Recruiter"} on {formatDate(job.createdAt)} · {" "}
+                  Posted by {job.postedBy.name || "Recruiter"} on {formatDate(job.createdAt)} ·{" "}
                   {job._count.applications} application(s)
                 </p>
               </div>
-              <Link href={`/jobs/${job.id}`} className="btn-main text-center">
+              <Link
+                href={`/jobs/${job.id}`}
+                className="btn-main flex-shrink-0 whitespace-nowrap text-center self-start md:self-center"
+              >
                 View & apply
               </Link>
             </div>
