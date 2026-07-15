@@ -76,7 +76,7 @@ Uses MCP Calendar and Gmail tools to schedule interviews automatically. Falls ba
 | Database | Prisma, SQLite, PostgreSQL (Supabase) |
 | Authentication | NextAuth, Credentials, Google OAuth |
 | AI | Groq API, LLM-powered resume generation & matching |
-| Email | Nodemailer, Gmail SMTP |
+| Email | RESEND |
 | Automation | MCP Calendar & Gmail |
 
 ## Architecture
